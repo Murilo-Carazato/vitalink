@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "assis-ofertas",
+  "private_key_id": "a5ef364137cf0f5d049e7acf6b7574f72eaed9fe",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDNGz1fPpK8gBQW\nGfgFDkP2uEilhWjuCKnuWFI0VzFTFiskNsvwJH97mmByPe+Mfs+OJHTYDuydMijS\noYnlqF1mLL769xAXNAV0Poo2eA5mAdwVJNBYTcVhoSLW8jnR9ESI8O5HfWIBj0N+\nQhsxPfgCPfnSCsaTrhGvz4HTdxX0B1Ta7+TZpjNbRDAoBQSnbK214oigIt6tiRC7\ns5Ea6HJRyp1vEbfAO7wmoCWGbB7fT6RrhaLXmEGUH9G6HT35K7B46WGKsbom4qE+\nBP3jm/pwYYDJsYfqmUTrk5exOJXX8/yhjShKS6U5h9NO+z25jHMyUiFHXaJGJAxp\nplXAalj/AgMBAAECggEAJqiiNjAEl0vqvUmywj0wmTGd27jcELWIVfjGsb/Xd6of\ngoljggVXE/SChjXfT1NdipSbg1e4yF46bIzvAV7tD8OSUZo8qarv9juNcHvLdvWV\nxlR0gphSAjdNakcol8abHlaPCuF6lgGrPoJ2Pp9H/iAxVKIcUJyID+OkPDffZume\nI4IHycXjB1t6/ycYDO9w2awokxkohDJsPkIdMcJbr1Ro0x0avMHHiS2xHwJ6N2RV\n4LRX8/vt4dOFjwldQicf08EKugwnadQMJMA9QakUql2AV+dOh1eIKHRBcVYHruQJ\n4hSMZxPiBMC+wxr3CvUkycTVuNk/i1qFRZ7SsL+gJQKBgQD5763Z8Nfpt8kmbd1K\nbSqIh1oYX77RnsT1S2aLwyDffqiThbGi7IePUNjfi//ikqZ+jxdFE2df/cIdJskO\n7aZaxqk8ATfGcnToS3WNZkdMCfKCLPz93najbYgd4eN85bzZzC+ifMytLjelwWGu\nZSfk2ZrvgoY7viE7IfjkRgMRRQKBgQDSFSDgkBc7WA2tdW5CXdUOP2m1jzjhH+gQ\nxasR4kUyUSWJuC08nFEtokNIaL917UES8E/N/k4VuZwxONt/pHXICUFEIozlIB06\nmBb3quMAFknM0CFNlz9gMzCF6T/AMeW2yJcN60AhTdAURbOg1/Ahe3fW8zviveS7\ns+t8c0crcwKBgQCfvzG/OtDF8VH/3fiyuVOWL+zF52xvTqtUnPzOF8nLD4lvwOPo\n3oVGdMYpG7JRfqor+glFfUF1eRu4xjF7+Sl6m79POvgLPty6HIDl/5lSYIk/6sFJ\nAgeSLU/yyY49Jhmum3NWx62Kgx/OMevdK4p0GyGMNEDXro5O3UfXn2gWgQKBgETa\nJd9Tejm53ym1bgCUTiqQP+4AVaz6zw0IK8v9s54NGFdtpG3T8YsaPiDyK6XTr1ss\npYsmyKK4JWfAcbgAx5Va6ygQhsrlXo8An65mNGWn6GIW6INMibnWrRWGX512/QmN\n7mviaS9BGGw8d+XEP/BJTfqF11+1ysx16DzubynfAoGAD6jWuoC5D3uPsFUkqFpH\ng/3Ntf2FtEUlpAMs2pFZjtMWJoTHDVGzhwkgN95G6xGo8hBx/WoFBd5MPY/uxwrU\nis25yPPhM09Q6gyQAoVgSN6nKkXwihsNslyak979Qdc05hO6zHCeHxlqdIvMmli2\n41mcDUK8K3oTDush5tcWCdU=\n-----END PRIVATE KEY-----\n",
+  "client_email": "assis-ofertas-notfications@assis-ofertas.iam.gserviceaccount.com",
+  "client_id": "112222903149891645298",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/assis-ofertas-notfications%40assis-ofertas.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
