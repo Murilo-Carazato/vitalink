@@ -33,13 +33,20 @@ class NewsController extends Controller
     public function store(NewsStoreRequest $request)
     {
         $notification = 'Not sent';
+
         if (!$request->user()->isadmin == 'admin') {
-            return response()->json(['message' => 'Unauthorized access'], Response::HTTP_UNAUTHORIZED);
+            return response()->json(['error' => 'Unauthorized'], Response::HTTP_FORBIDDEN);
         }
-        if ($request->type == 'emergency') {
-            $request->validate([
-                'blood_type' => ['required', 'string', 'in:positiveA,negativeA,positiveB,negativeB,negativeAB,positiveAB,negativeO,positiveO']
-            ]);
+
+        $news = News::create([
+            'title' => $request->title,
+            'content' => $request->content,
+            'type' => $request->type,
+            'blood_type' => $request->blood_type,
+            'user_id' => $request->user()->id,
+        ]);
+
+        if ($request->type == 'emergency' && $request->blood_type) {
             $this->firebaseService->sendNotification(
                 $request->title,
                 $request->content,
@@ -48,18 +55,10 @@ class NewsController extends Controller
             );
             $notification = 'Sent';
         }
-        $news = News::create([
-            'title' => $request->title,
-            'content' => $request->content,
-            'user_id' => $request->user()->id,
-            'image' => $request->image,
-            'type' => $request->type,
-        ]);
 
         return response()->json([
-            'message' => 'News created successfully',
+            'notification' => $notification,
             'data' => $news,
-            'notification' => $notification
         ], Response::HTTP_OK);
     }
 
