@@ -38,7 +38,10 @@ class UserController extends Controller
             'bloodcenter_id' => $request->bloodcenter_id,
         ]);
 
-        return response()->json(['data' => $user], Response::HTTP_OK);
+        return response()->json([
+            'data' => $user,
+            'token' => $user->createToken($request->email)->plainTextToken,
+        ], Response::HTTP_OK);
     }
 
     /**
