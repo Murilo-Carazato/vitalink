@@ -1,0 +1,426 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:vitalink/src/components/button_settings.dart';
+import 'package:vitalink/services/stores/donation_store.dart';
+import 'package:vitalink/services/models/donation_model.dart';
+import 'package:vitalink/styles.dart';
+
+class HistoryPage extends StatefulWidget {
+  const HistoryPage({super.key});
+
+  static const routeName = '/history';
+
+  @override
+  State<HistoryPage> createState() => _HistoryPageState();
+}
+
+class _HistoryPageState extends State<HistoryPage> {
+  String? selectedFilter;
+  late DonationStore donationStore;
+
+  @override
+  void initState() {
+    super.initState();
+    donationStore = Provider.of<DonationStore>(context, listen: false);
+    _loadDonationHistory();
+  }
+
+  void _loadDonationHistory() async {
+    await donationStore.fetchDonationHistory();
+  }
+
+  void _filterDonations(String? filter) {
+    setState(() {
+      selectedFilter = filter;
+    });
+    donationStore.fetchDonations(status: filter);
+  }
+
+  void _showCancelDialog(DonationModel donation) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancelar Doação'),
+        content: const Text('Tem certeza que deseja cancelar esta doação?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Não'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final success = await donationStore.cancelDonation(donation.donationToken);
+              if (success && mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Doação cancelada com sucesso')),
+                );
+              }
+            },
+            child: const Text('Sim'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showConfirmedDialog(DonationModel donation) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar Doação'),
+        content: const Text('Marcar esta doação como concluída?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Não'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final success = await donationStore.updateDonation(
+                donation.donationToken,
+                // Aqui você pode adicionar outros campos se necessário
+              );
+              if (success && mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Doação marcada como concluída')),
+                );
+              }
+            },
+            child: const Text('Sim'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'confirmed':
+      case 'concluído':
+        return Colors.green;
+      case 'cancelled':
+      case 'cancelado':
+        return Colors.red;
+      case 'scheduled':
+      case 'agendado':
+      case 'pendente':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _getStatusText(String status) {
+    switch (status.toLowerCase()) {
+      case 'confirmed':
+        return 'Concluído';
+      case 'cancelled':
+        return 'Cancelado';
+      case 'scheduled':
+        return 'Agendado';
+      default:
+        return status;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'confirmed':
+      case 'concluído':
+        return Icons.task_alt;
+      case 'cancelled':
+      case 'cancelado':
+        return Icons.cancel;
+      case 'scheduled':
+      case 'agendado':
+      case 'pendente':
+        return Icons.schedule;
+      default:
+        return Icons.info;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    var textTheme = Theme.of(context).textTheme;
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Histórico',
+          style: Theme.of(context).textTheme.titleLarge!.copyWith(
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        actions: const [ButtonSettings()],
+      ),
+      body: Consumer<DonationStore>(
+        builder: (context, store, child) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      "Filtrar",
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(width: 13),
+                    _buildFilterButton('confirmed', 'Concluído', Colors.green),
+                    const SizedBox(width: 13),
+                    _buildFilterButton('cancelled', 'Cancelado', Styles.border),
+                    const SizedBox(width: 13),
+                    _buildFilterButton('scheduled', 'Pendente', Styles.border),
+                  ],
+                ),
+                const SizedBox(height: 44),
+                
+                // Loading indicator
+                if (store.isLoading.value)
+                  const Center(child: CircularProgressIndicator())
+                
+                // Error message
+                else if (store.error.value.isNotEmpty)
+                  Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          'Erro: ${store.error.value}',
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _loadDonationHistory,
+                          child: const Text('Tentar novamente'),
+                        ),
+                      ],
+                    ),
+                  )
+                
+                // Donations list
+                else if (store.donations.value.isEmpty)
+                  const Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.history, size: 64, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text(
+                          'Nenhuma doação encontrada',
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  )
+                
+                else
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: store.getFilteredDonations(status: selectedFilter).length,
+                    itemBuilder: (context, index) {
+                      final donation = store.getFilteredDonations(status: selectedFilter)[index];
+                      return _buildDonationCard(donation, textTheme);
+                    },
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFilterButton(String filter, String label, Color color) {
+    final isSelected = selectedFilter == filter;
+    
+    return SizedBox(
+      width: 90,
+      height: 37,
+      child: OutlinedButton(
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: isSelected ? color : Styles.border),
+          backgroundColor: isSelected ? color.withOpacity(0.1) : Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+        onPressed: () => _filterDonations(isSelected ? null : filter),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? color : Colors.grey,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDonationCard(DonationModel donation, TextTheme textTheme) {
+    final statusColor = _getStatusColor(donation.status);
+    final statusText = _getStatusText(donation.status);
+    final statusIcon = _getStatusIcon(donation.status);
+    final isPending = donation.status.toLowerCase() == 'scheduled';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        border: Border.all(color: statusColor),
+        borderRadius: const BorderRadius.all(Radius.circular(10)),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          // Status header
+          Container(
+            height: 35,
+            decoration: BoxDecoration(
+              border: Border.all(color: statusColor),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(statusIcon, color: statusColor),
+                const SizedBox(width: 8),
+                Text(
+                  statusText,
+                  style: TextStyle(color: statusColor, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Donation details
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Agendado: ${donation.donationDate.day}/${donation.donationDate.month}/${donation.donationDate.year}",
+                      style: textTheme.labelSmall,
+                    ),
+                    Text(
+                      "Horário: ${donation.donationTime}",
+                      style: textTheme.labelSmall,
+                    ),
+                    if (donation.status.toLowerCase() == 'confirmed')
+                      Text(
+                        "Realizado: ${donation.donationDate.day}/${donation.donationDate.month}/${donation.donationDate.year}",
+                        style: textTheme.labelSmall,
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 21),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Tipo sanguíneo: ${donation.bloodType}",
+                      style: textTheme.labelSmall,
+                    ),
+                    if (donation.donorGender != null)
+                      Text(
+                        "Gênero: ${donation.donorGender}",
+                        style: textTheme.labelSmall,
+                      ),
+                    if (donation.donorAgeRange != null)
+                      Text(
+                        "Idade: ${donation.donorAgeRange}",
+                        style: textTheme.labelSmall,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Divider(),
+          const SizedBox(height: 20),
+          
+          // Location info
+          Row(
+            children: [
+              const Icon(Icons.location_on_outlined, size: 25),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Hemocentro ID: ${donation.bloodcenterId}",
+                      style: textTheme.labelSmall,
+                    ),
+                    if (donation.medicalNotes != null && donation.medicalNotes!.isNotEmpty)
+                      Text(
+                        "Observações: ${donation.medicalNotes}",
+                        style: textTheme.labelSmall,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          
+          // Action buttons for pending donations
+          if (isPending) ...[
+            const SizedBox(height: 20),
+            const Divider(),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  height: 52,
+                  width: 140,
+                  child: TextButton(
+                    onPressed: () => _showCancelDialog(donation),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                    ),
+                    child: Text(
+                      "Cancelar",
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: Colors.red,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                SizedBox(
+                  height: 52,
+                  width: 140,
+                  child: TextButton(
+                    onPressed: () => _showConfirmedDialog(donation),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                    ),
+                    child: Text(
+                      "Concluir",
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: Colors.green,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
