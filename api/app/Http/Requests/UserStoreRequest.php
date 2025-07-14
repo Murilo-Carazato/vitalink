@@ -23,7 +23,7 @@ class UserStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'min:5', 'max:70'],
+            'name' => ['string', 'min:5', 'max:70'],
             'password' => ['required', 'min:6'],
             'email' => ['required', 'email', Rule::unique('users')->ignore($this->id)],
             'isadmin' => ['in:admin,superadmin'],
