@@ -15,6 +15,7 @@ class News extends Model
         'image',
         'user_id',
         'type',
+        'blood_type',
     ];
 
     public function user()
