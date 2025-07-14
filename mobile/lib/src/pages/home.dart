@@ -11,7 +11,7 @@ import 'package:vitalink/src/components/button_home_page.dart';
 import 'package:vitalink/src/components/card_home_status/status_card_selector.dart';
 import 'package:vitalink/src/components/location_warning.dart';
 import 'package:vitalink/src/components/user_header.dart';
-import 'package:vitalink/src/pages/blood_center_details.dart';
+
 import 'package:vitalink/src/pages/history.dart';
 import 'package:vitalink/src/pages/news.dart';
 import 'package:permission_handler/permission_handler.dart';

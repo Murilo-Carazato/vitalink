@@ -27,7 +27,7 @@ class AuthStore with ChangeNotifier {
           await _authRepo.login(LoginRequest(email: email, password: password));
       final token = data['token'];
 
-      MyHttpClient.token = token;
+      MyHttpClient.setToken(token);
 
       // 2. Obter dados do usuário da resposta
       final userJson = data['user'];
@@ -97,7 +97,7 @@ class AuthStore with ChangeNotifier {
       // 2. Salvar token para uso imediato
       final token = data['token'];
       if (token != null) {
-        MyHttpClient.token = token;
+        MyHttpClient.setToken(token);
       }
 
       // 3. Criar usuário local com dados do registro e valores válidos para campos obrigatórios

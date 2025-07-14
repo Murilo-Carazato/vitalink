@@ -12,6 +12,7 @@ class Donation extends Model
 
     protected $fillable = [
         'donation_token',
+        'user_id',
         'blood_type',
         'donation_date',
         'donation_time',

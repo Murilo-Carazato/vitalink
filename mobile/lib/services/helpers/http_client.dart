@@ -3,19 +3,23 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class MyHttpClient {
-  //esse token deve ser utilizado para os gets enquanto o backend não altera os dados para não necessitar de token
-  static String token = "2|5yijr4W5VLIOPbY71sjrKt97snNZh5cqEpSGbiRif4742286";
+  static String? _token;
   static const baseUrl = "http://192.168.0.5:8000/api";
 
-    static Map<String, String> getHeaders({String? token, bool isJson = false}) {
+  static void setToken(String newToken) {
+    _token = newToken;
+  }
+
+  static Map<String, String> getHeaders({String? token, bool isJson = false}) {
     final headers = {
       HttpHeaders.acceptHeader: 'application/json',
     };
-    if (token != null) {
-      headers[HttpHeaders.authorizationHeader] = 'Bearer $token';
+    final currentToken = token ?? _token;
+    if (currentToken != null) {
+      headers[HttpHeaders.authorizationHeader] = 'Bearer $currentToken';
     }
     if (isJson) {
-      headers[HttpHeaders.contentTypeHeader] = 'application/json'; // << NOVO
+      headers[HttpHeaders.contentTypeHeader] = 'application/json';
     }
     return headers;
   }

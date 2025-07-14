@@ -14,7 +14,7 @@ class NewsRepository implements INewsRepository {
     try {
       final response = await MyHttpClient.get(
         url: '/news?has_pagination=$hasPagination&page=$page',
-        headers: MyHttpClient.getHeaders(token: MyHttpClient.token),
+        headers: MyHttpClient.getHeaders(),
       );
 
       if (response.statusCode == 200) {

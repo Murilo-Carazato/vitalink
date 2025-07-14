@@ -24,7 +24,7 @@ class BloodRepository implements IBloodRepository {
       final response = await MyHttpClient.get(
         url:
             '/blood-center?has_pagination=$hasPagination&page=${page.value}&search=$search',
-        headers: MyHttpClient.getHeaders(token: MyHttpClient.token),
+        headers: MyHttpClient.getHeaders(),
       );
       if (response.statusCode == 200) {
         List<BloodCenterModel> bloodCenters = [];
@@ -79,7 +79,7 @@ class BloodRepository implements IBloodRepository {
     try {
       final response = await MyHttpClient.get(
         url: '/blood-center/$id',
-        headers: MyHttpClient.getHeaders(token: MyHttpClient.token),
+        headers: MyHttpClient.getHeaders(),
       );
       if (response.statusCode == 200) {
         final body = await jsonDecode(response.body);

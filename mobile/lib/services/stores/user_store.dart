@@ -74,7 +74,7 @@ class UserStore with ChangeNotifier {
       await repository.updateUser(loggedOutUser);
 
       // Limpar token global
-      MyHttpClient.token = '';
+      MyHttpClient.setToken('');
 
       // Recarregar usuário
       final result = await repository.getUser();

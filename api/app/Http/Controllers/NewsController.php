@@ -4,114 +4,81 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\NewsStoreRequest;
 use App\Http\Requests\NewsUpdateRequest;
-use App\Models\News;
-use App\Services\FirebaseService;
+use App\Services\NewsService;
 use App\Services\PaginateAndFilter;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class NewsController extends Controller
 {
-    protected $firebaseService;
+    protected $newsService;
 
-    public function __construct(FirebaseService $firebaseService)
+    public function __construct(NewsService $newsService)
     {
-        $this->firebaseService = $firebaseService;
+        $this->newsService = $newsService;
     }
-    /**
-     * Display a listing of the resource.
-     */
+
     public function index()
     {
-        $query = PaginateAndFilter::applyFilters(News::class,'title');
-        return response()->json(['data'=>PaginateAndFilter::response($query)]);
+        $query = $this->newsService->getNews();
+        return response()->json(['data' => PaginateAndFilter::response($query)]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(NewsStoreRequest $request)
     {
-        $notification = 'Not sent';
-
-        if (!$request->user()->isadmin == 'admin') {
+        if ($request->user()->isadmin != 'admin' && $request->user()->isadmin != 'superadmin') {
             return response()->json(['error' => 'Unauthorized'], Response::HTTP_FORBIDDEN);
         }
 
-        $news = News::create([
-            'title' => $request->title,
-            'content' => $request->content,
-            'type' => $request->type,
-            'blood_type' => $request->blood_type,
-            'user_id' => $request->user()->id,
-        ]);
-
-        if ($request->type == 'emergency' && $request->blood_type) {
-            $this->firebaseService->sendNotification(
-                $request->title,
-                $request->content,
-                $request->blood_type,
-                $request->type
-            );
-            $notification = 'Sent';
-        }
+        $result = $this->newsService->createNews($request->validated(), $request->user());
 
         return response()->json([
-            'notification' => $notification,
-            'data' => $news,
-        ], Response::HTTP_OK);
+            'notification' => $result['notification'],
+            'data' => $result['news'],
+        ], Response::HTTP_CREATED);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
-        if (!$news = News::find($id)) {
+        $news = $this->newsService->getNewsById($id);
+
+        if (!$news) {
             return response()->json(['message' => 'No news found'], Response::HTTP_NOT_FOUND);
         }
 
         return response()->json(['data' => $news], Response::HTTP_OK);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(NewsUpdateRequest $request, string $id)
     {
-        if (!$news = News::find($id)) {
+        $news = $this->newsService->getNewsById($id);
+
+        if (!$news) {
             return response()->json(['message' => 'No news found'], Response::HTTP_NOT_FOUND);
         }
 
-        if (!$request->user()->id == $news->user_id) {
+        if ($request->user()->id != $news->user_id) {
             return response()->json(['message' => 'Unauthorized access'], Response::HTTP_UNAUTHORIZED);
         }
 
-        $news->update([
-            'title' => $request->title ?: $news->title,
-            'content' => $request->content ?: $news->content,
-            'image' => $request->image ?: $news->image,
-            'type' => $request->type ?: $news->type,
-            'user_id' => $news->user_id,
-        ]);
+        $updatedNews = $this->newsService->updateNews($news, $request->validated(), $request->user());
 
-        return response()->json(['message' => 'News updated successfully', 'data' => $news], Response::HTTP_OK);
+        return response()->json(['message' => 'News updated successfully', 'data' => $updatedNews], Response::HTTP_OK);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Request $request, string $id)
     {
-        if (!$news = News::find($id)) {
+        $news = $this->newsService->getNewsById($id);
+
+        if (!$news) {
             return response()->json(['message' => 'No news found'], Response::HTTP_NOT_FOUND);
         }
 
-        if (!$request->user()->id == $news->user_id) {
+        if ($request->user()->id != $news->user_id) {
             return response()->json(['message' => 'Unauthorized access'], Response::HTTP_UNAUTHORIZED);
         }
 
-        $news->delete();
+        $this->newsService->deleteNews($news, $request->user());
 
         return response()->json(['message' => 'News deleted successfully'], Response::HTTP_OK);
     }

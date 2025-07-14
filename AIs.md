@@ -51,6 +51,13 @@ igual/melhor que o copilot VV/X JetBrains AI (FEZ A MAIOR DOCUMENTAÇÃO 2K DE L
 igual/melhor que o copilot V/X Amazon Q Developer (antigo CodeWhisperer)
 conheço V GitHub Copilot (Enterprise / Chat)
 
+=
+
+Google (Vertex AI / AI Studio) vou usar um script o qual já tenho
+together AI, Anyscale / Fireworks AI devem funcionar com algum assistente como o copilot
+o claude code é tipo o Qodo? indexa meu projeto e me disponiliza qnatos tokens?
+aws bedrock eu tenho extensão no vscode
+
 ===PROMPTS E PERSONAS PARA UTILIZAR NO FUTURO===
 
 SOLID Rules

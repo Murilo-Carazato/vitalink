@@ -269,11 +269,11 @@ class DonationStore extends ChangeNotifier {
         : List<DonationModel>.from(_donations.value);
 
     // Filtra apenas as doações que contêm o token do usuário nas notas médicas
-    if (MyHttpClient.token.isNotEmpty) {
+    if (MyHttpClient.getHeaders().isNotEmpty) {
       filtered = filtered
           .where((d) =>
               d.medicalNotes != null &&
-              d.medicalNotes!.contains('[USER_TOKEN:${MyHttpClient.token}]'))
+              d.medicalNotes!.contains('[USER_TOKEN:${MyHttpClient.getHeaders()}]'))
           .toList();
     }
 
