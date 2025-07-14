@@ -17,6 +17,7 @@ return new class extends Migration
             $table->text('content');
             $table->longtext('image')->nullable();
             $table->enum('type', ['campaing','emergency']);
+            $table->string('blood_type')->nullable();
             $table->foreignId('user_id');
             $table->timestamps();
         });
