@@ -24,4 +24,9 @@ class BloodCenter extends Model
     {
         return $this->has(User::class);
     }
+
+    public function donations()
+    {
+        return $this->hasMany(Donation::class);
+    }
 }
