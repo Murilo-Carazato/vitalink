@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "686195699155",
+    "project_id": "vitalink-bdb3d",
+    "storage_bucket": "vitalink-bdb3d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:686195699155:android:09516dc36ce75f46489326",
+        "android_client_info": {
+          "package_name": "io.vitalink.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_yIudt8dbRwjV77lnP2iASUHZ9KqSr0I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
