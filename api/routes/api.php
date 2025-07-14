@@ -21,6 +21,7 @@ Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/user/logout', [AuthController::class, 'destroy'])->name('user.logout');
     Route::get('/user', [UserController::class, 'index'])->name('user.index');
+    Route::get('/user/donations', [DonationController::class, 'getDonationsForUser'])->name('user.donations');
     Route::put('/user/{id}', [UserController::class, 'update'])->name('user.update');
     Route::delete('/user/{id}', [UserController::class, 'destroy'])->name('user.destroy');
 });
@@ -46,19 +47,21 @@ Route::middleware(['auth:sanctum'])->group(function () {
 Route::get('/news', [NewsController::class, 'index'])->name('news.index'); // como funciona no firebase?
 
 
-// Rota para gerar token único (usado pelo app)
-Route::get('/donations/generate-token', function () {
-    return response()->json(['token' => \App\Models\Donation::generateDonationToken()]);
-})->name('donations.generate-token');
+// ------------------ DONATIONS  ------------------
 
-// Rotas para hemocentros/admins
+// Rotas de doação que exigem autenticação (doador)
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/donations/generate-token', [DonationController::class, 'generateToken'])->name('donations.generate-token');
+    Route::post('/donations/schedule', [DonationController::class, 'store'])->name('donations.store');
+    Route::post('/donations/{token}/cancel', [DonationController::class, 'cancel'])->name('donations.cancel');
+});
+
+// Rotas para admin/hemocentro (podem exigir outro tipo de auth no futuro)
 Route::get('/donations', [DonationController::class, 'index'])->name('donations.index');
 Route::get('/donations/statistics', [DonationController::class, 'statistics'])->name('donations.statistics');
 Route::get('/donations/{token}', [DonationController::class, 'show'])->name('donations.show');
 Route::put('/donations/{token}', [DonationController::class, 'update'])->name('donations.update');
 Route::post('/donations/{token}/confirm', [DonationController::class, 'confirm'])->name('donations.confirm');
 
-// Rotas públicas para o app do doador
-Route::post('/donations/schedule', [DonationController::class, 'store'])->name('donations.store');
+// Rota pública para consultar status da doação
 Route::get('/donations/{token}/status', [DonationController::class, 'show'])->name('donations.status');
-Route::post('/donations/{token}/cancel', [DonationController::class, 'cancel'])->name('donations.cancel');
