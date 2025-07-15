@@ -20,9 +20,9 @@ class DatabaseHelper {
   _initDatabase() async {
     Database localStorage = await openDatabase(
       join(await getDatabasesPath(), 'bloodbank.db'),
-      version: 2, // <- mudou de 1 para 2
+      version: 3, // <- mudou de 2 para 3
       onCreate: _onCreate,
-      onUpgrade: _onUpgrade, // <- novo
+      onUpgrade: _onUpgrade,
     );
     return localStorage;
   }
@@ -38,6 +38,9 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE User ADD COLUMN email TEXT');
       await db.execute('ALTER TABLE User ADD COLUMN token TEXT');
     }
+    if (oldVersion < 3) {
+      await db.execute('ALTER TABLE User ADD COLUMN profile_photo_path TEXT');
+    }
   }
 
   String get _user => '''
@@ -51,7 +54,8 @@ class DatabaseHelper {
         hasPermanentMakeup INTEGER NOT NULL,
         viewedTutorial INTEGER NOT NULL DEFAULT 0,
         email TEXT,
-        token TEXT
+        token TEXT,
+        profile_photo_path TEXT
         );
     ''';
 
