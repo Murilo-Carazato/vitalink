@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Database\Eloquent\Builder;
+use App\Enums\DonationStatus;
 
 class DonationService
 {
@@ -57,7 +58,7 @@ class DonationService
      */
     public function updateDonation(Donation $donation, array $data, User $user): Donation
     {
-        if ($donation->bloodcenter_id != $user->bloodcenter_id) {
+        if ($donation->user_id !== $user->id) {
             abort(Response::HTTP_UNAUTHORIZED, 'Acesso não autorizado');
         }
 
@@ -81,13 +82,36 @@ class DonationService
     /**
      * Cancel a donation.
      */
-    public function cancelDonation(Donation $donation): Donation
+    public function cancelDonation(Donation $donation, User $user): Donation
     {
+        if ($donation->user_id !== $user->id) {
+            abort(Response::HTTP_UNAUTHORIZED, 'Acesso não autorizado');
+        }
+
         if (!$donation->canBeCancelled()) {
             abort(Response::HTTP_FORBIDDEN, 'Doação não pode ser cancelada');
         }
 
         $donation->update(['status' => 'cancelled']);
+        return $donation;
+    }
+
+    /**
+     * Mark a donation as completed.
+     */
+    public function completeDonation(Donation $donation, User $user): Donation
+    {
+        if ($donation->user_id !== $user->id) {
+            abort(Response::HTTP_UNAUTHORIZED, 'Acesso não autorizado');
+        }
+
+        if (!in_array($donation->status, [DonationStatus::SCHEDULED, DonationStatus::CONFIRMED])) {
+            abort(Response::HTTP_FORBIDDEN, 'A doação não pode ser concluída no estado atual.');
+        }
+
+        $donation->status = DonationStatus::COMPLETED;
+        $donation->save();
+
         return $donation;
     }
 
@@ -117,14 +141,6 @@ class DonationService
                 ->selectRaw('donor_age_range, count(*) as total')
                 ->pluck('total', 'donor_age_range'),
         ];
-    }
-
-    /**
-     * Generate a unique donation token.
-     */
-    public function generateToken(): string
-    {
-        return Donation::generateDonationToken();
     }
 
     /**
