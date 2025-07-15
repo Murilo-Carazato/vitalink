@@ -86,6 +86,8 @@ class DonationModel {
   }
 
   // Métodos de conveniência
+  bool get canBeCompleted => ['scheduled', 'confirmed'].contains(status);
+
   bool get canBeEdited => ['scheduled', 'confirmed'].contains(status);
 
   bool get canBeCancelled => ['scheduled', 'confirmed'].contains(status) && donationDate.isAfter(DateTime.now());
