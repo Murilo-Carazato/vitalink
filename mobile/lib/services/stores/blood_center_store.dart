@@ -16,6 +16,28 @@ class BloodCenterStore with ChangeNotifier {
   ValueNotifier<List<BloodCenterModel>> stateWhenPaginate = ValueNotifier<List<BloodCenterModel>>([]);
   ValueNotifier<String> erro = ValueNotifier<String>('');
   ValueNotifier<BloodCenterModel?> selectedBloodCenter = ValueNotifier<BloodCenterModel?>(null);
+  ValueNotifier<List<BloodCenterModel>> dropdownBloodCenters = ValueNotifier<List<BloodCenterModel>>([]);
+
+  Future<void> fetchForDropdown() async {
+    // Evita chamadas repetidas se a lista já estiver carregada
+    if (dropdownBloodCenters.value.isNotEmpty) return;
+
+    isLoading.value = true;
+    erro.value = '';
+    try {
+      // A paginação não é relevante aqui, mas o repositório espera os notifiers
+      final tempPage = ValueNotifier<int>(1);
+      final tempPages = ValueNotifier<List<PageModel>>([]);
+      
+      // hasPagination: false para buscar todos, search: '' para não filtrar
+      final result = await repository.index(false, tempPage, '', tempPages);
+      dropdownBloodCenters.value = result;
+    } catch (e) {
+      erro.value = e.toString();
+    } finally {
+      isLoading.value = false;
+    }
+  }
 
 
   // Atualizado: sempre atualiza stateWhenPaginate, para que a tela sempre use esse notifier
@@ -34,7 +56,8 @@ class BloodCenterStore with ChangeNotifier {
       erro.value = e.message;
       state.value = [];
       stateWhenPaginate.value = [];
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('error: $e , stackTrace: $stackTrace');
       erro.value = e.toString();
       state.value = [];
       stateWhenPaginate.value = [];
