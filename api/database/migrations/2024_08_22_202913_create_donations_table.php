@@ -1,7 +1,10 @@
 <?php
 
+use App\Enums\BloodType;
+use App\Enums\DonationStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -17,10 +20,10 @@ return new class extends Migration
             $table->string('donation_token', 64)->unique();
             
             // Dados não sensíveis necessários para operação
-            $table->enum('blood_type', ['positiveA', 'negativeA', 'positiveB', 'negativeB', 'negativeAB', 'positiveAB', 'negativeO', 'positiveO']);
+            $table->enum('blood_type', Arr::pluck(BloodType::cases(), 'value'));
             $table->date('donation_date');
             $table->time('donation_time')->nullable(); // Horário específico
-            $table->enum('status', ['scheduled', 'confirmed', 'completed', 'cancelled', 'no_show'])->default('scheduled');
+            $table->enum('status', Arr::pluck(DonationStatus::cases(), 'value'))->default(DonationStatus::SCHEDULED->value);
             $table->foreignId('bloodcenter_id')->constrained('bloodcenters');
             
             // Dados para estatísticas/relatórios (sem identificação)
