@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\DonationStatus;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 // Request para atualizações (apenas dados não sensíveis)
 class DonationUpdateRequest extends FormRequest
@@ -17,7 +19,7 @@ class DonationUpdateRequest extends FormRequest
         return [
             'donation_date' => ['nullable', 'date', 'after:today'],
             'donation_time' => ['nullable', 'date_format:H:i'],
-            'status' => ['nullable', 'in:scheduled,confirmed,completed,cancelled,no_show'],
+            'status' => ['nullable', Rule::enum(DonationStatus::class)],
             'medical_notes' => ['nullable', 'string', 'max:1000'],
             'staff_notes' => ['nullable', 'string', 'max:1000'],
         ];
