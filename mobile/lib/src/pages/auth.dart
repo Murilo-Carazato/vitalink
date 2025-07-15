@@ -3,6 +3,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:vitalink/services/stores/auth_store.dart';
 import 'package:vitalink/styles.dart';
+import 'package:vitalink/src/components/custom_dialog.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -107,32 +108,19 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     );
   }
 
-  void _handleForgotPassword() {
+  void _handleForgotPassword() async {
     // Implementar esqueci a senha
-    showDialog(
+    await showCustomDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Esqueceu a senha?'),
-        content: const Text('Um link de recuperação será enviado para seu email.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Link de recuperação enviado!'),
-                  backgroundColor: Styles.green,
-                ),
-              );
-            },
-            child: const Text('Enviar'),
-          ),
-        ],
-      ),
+      title: 'Esqueceu a senha?',
+      content:
+          'A funcionalidade de recuperação de senha ainda não foi implementada.',
+      confirmText: 'Entendi',
+      cancelText: '', // No cancel button
+      icon: LucideIcons.info,
+      onConfirm: () {
+        Navigator.of(context).pop();
+      },
     );
   }
 
