@@ -12,7 +12,20 @@
           "package_name": "io.vitalink.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "686195699155-f3bcrsldi5e0qhu7ubf6ch27dq4qfgrr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "io.vitalink.app",
+            "certificate_hash": "a2b97a34669ddf19cc272a05dd5717fed2a29216"
+          }
+        },
+        {
+          "client_id": "686195699155-mnatdq860to165uncedt3aptu4kg724s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyC_yIudt8dbRwjV77lnP2iASUHZ9KqSr0I"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "686195699155-mnatdq860to165uncedt3aptu4kg724s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
