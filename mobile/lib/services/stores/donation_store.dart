@@ -50,7 +50,7 @@ class DonationStore extends ChangeNotifier {
   Future<bool> _ensureUserIsLoaded() async {
     // Se o token não estiver definido no cliente, tenta carregar o usuário
     if (MyHttpClient.getToken() == null || MyHttpClient.getToken()!.isEmpty) {
-      await _userStore.getUser();
+      await _userStore.loadCurrentUser();
     }
     
     // Se, mesmo após a tentativa, o token não estiver disponível, a ação falha.
