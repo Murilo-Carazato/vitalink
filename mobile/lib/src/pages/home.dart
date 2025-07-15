@@ -2,7 +2,6 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:vitalink/services/models/nearby_model.dart';
-import 'package:vitalink/services/repositories/api/blood_center_repository.dart';
 import 'package:vitalink/services/stores/blood_center_store.dart';
 import 'package:vitalink/services/stores/donation_store.dart';
 import 'package:vitalink/services/stores/nearby_store.dart';
@@ -11,6 +10,7 @@ import 'package:vitalink/src/components/button_home_page.dart';
 import 'package:vitalink/src/components/card_home_status/status_card_selector.dart';
 import 'package:vitalink/src/components/location_warning.dart';
 import 'package:vitalink/src/components/user_header.dart';
+import 'package:vitalink/src/pages/blood_center_details.dart';
 
 import 'package:vitalink/src/pages/history.dart';
 import 'package:vitalink/src/pages/news.dart';
@@ -20,10 +20,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:vitalink/src/pages/schedule_donation.dart';
 
 //TODO: arrumar o histórico
-//TODO: arrumar o logout
+//TODO: arrumar o logout; o estado do user_header não é atualizado corretamente, tem q colocar o hot restart
+//o token está se perdendo ao ultimizar o hot restar
+
 
 //TODO: estado do card e do "próxima doação" quando for concluida/finalizado
-//(hemocentro vai deletar ou atualizar como confirmado dependendo da presença do usuário), 
+//(hemocentro vai deletar ou atualizar como confirmado dependendo da presença do usuário),
 //tem diferença mas n me atentei e mexi sem commitar. Isso n tem nem no backend
 
 class HomePage extends StatefulWidget {
@@ -90,20 +92,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   String _formatDate(DateTime date) {
-    const months = [
-      'Jan',
-      'Fev',
-      'Mar',
-      'Abr',
-      'Mai',
-      'Jun',
-      'Jul',
-      'Ago',
-      'Set',
-      'Out',
-      'Nov',
-      'Dez'
-    ];
+    const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
@@ -143,8 +132,7 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
                         onPressed: () {
-                          Navigator.restorablePushNamed(
-                              context, ScheduleDonationPage.routeName);
+                          Navigator.restorablePushNamed(context, ScheduleDonationPage.routeName);
                         },
                         icon: const Icon(LucideIcons.plus),
                         label: const Text('Agendar Doação'),
@@ -216,13 +204,7 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   ElevatedButton.icon(
                     onPressed: () async {
-                      bool permissionStatus = await requestPermission();
-                      if (permissionStatus &&
-                          nextDonation.bloodcenter?.name != null) {
-                        await openMap(nextDonation.bloodcenter!.address);
-                      } else {
-                        openAppSettings();
-                      }
+                      await openMap(nextDonation.bloodcenter!.address);
                     },
                     icon: const Icon(Icons.location_on_outlined),
                     label: const Text('Ver no mapa'),
@@ -235,8 +217,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   ElevatedButton.icon(
-                    onPressed: () =>
-                        _showCancelDonationDialog(nextDonation.donationToken),
+                    onPressed: () => _showCancelDonationDialog(nextDonation.donationToken),
                     icon: const Icon(LucideIcons.x),
                     label: const Text('Cancelar'),
                     style: ElevatedButton.styleFrom(
@@ -325,8 +306,7 @@ class _HomePageState extends State<HomePage> {
       onRefresh: () async {
         print('Atualizando dados da página inicial...');
         await Future.wait([
-          widget.nearbyStore.syncNearbyBloodCenters(
-              bloodCentersFromApi: widget.bloodCenterStore.state.value),
+          widget.nearbyStore.syncNearbyBloodCenters(bloodCentersFromApi: widget.bloodCenterStore.state.value),
           widget.donationStore.fetchNextDonation(),
           // widget.donationStore.fetchStatistics(),
         ]);
@@ -361,16 +341,14 @@ class _HomePageState extends State<HomePage> {
                         title: 'Histórico',
                         sizeOfCard: constraints.maxWidth * (30.59 / 100),
                         onTap: () {
-                          Navigator.restorablePushNamed(
-                              context, HistoryPage.routeName);
+                          Navigator.restorablePushNamed(context, HistoryPage.routeName);
                         },
                       ),
                       ButtonHomePage(
                         icon: LucideIcons.droplets,
                         title: 'Doar',
                         onTap: () {
-                          Navigator.restorablePushNamed(
-                              context, ScheduleDonationPage.routeName);
+                          Navigator.restorablePushNamed(context, ScheduleDonationPage.routeName);
                         },
                         sizeOfCard: constraints.maxWidth * (30.59 / 100),
                       ),
@@ -378,8 +356,7 @@ class _HomePageState extends State<HomePage> {
                         icon: LucideIcons.megaphone,
                         title: 'Notícias',
                         onTap: () {
-                          Navigator.restorablePushNamed(
-                              context, NewsPage.routeName);
+                          Navigator.restorablePushNamed(context, NewsPage.routeName);
                         },
                         sizeOfCard: constraints.maxWidth * (30.59 / 100),
                       ),
@@ -417,11 +394,7 @@ class _HomePageState extends State<HomePage> {
                 // Verifica se há erro de localização
                 final errorMsg = widget.nearbyStore.erro.value;
 // Verificação mais abrangente para capturar qualquer erro de localização
-                if (errorMsg.isNotEmpty &&
-                    (errorMsg.contains('localização') ||
-                        errorMsg.contains('location') ||
-                        errorMsg.contains('GPS') ||
-                        errorMsg.contains('serviços de localização'))) {
+                if (errorMsg.isNotEmpty && (errorMsg.contains('localização') || errorMsg.contains('location') || errorMsg.contains('GPS') || errorMsg.contains('serviços de localização'))) {
                   return LocationWarning(
                     nearbyStore: widget.nearbyStore,
                     bloodCenters: widget.bloodCenterStore.state.value,
@@ -429,8 +402,7 @@ class _HomePageState extends State<HomePage> {
                 }
 
                 List<NearbyModel> nearbyBCs = widget.nearbyStore.state.value;
-                if (widget.bloodCenterStore.isLoading.value ||
-                    widget.nearbyStore.isLoading.value) {
+                if (widget.bloodCenterStore.isLoading.value || widget.nearbyStore.isLoading.value) {
                   return Skeletonizer(
                     enabled: true,
                     child: Column(
@@ -469,17 +441,15 @@ class _HomePageState extends State<HomePage> {
                     final nearbyBloodCenter = nearbyBCs[index];
                     return ListTile(
                       title: Text(nearbyBloodCenter.bloodCenter.name),
-                      subtitle:
-                          Text('${nearbyBloodCenter.distance} km de você'),
+                      subtitle: Text('${nearbyBloodCenter.distance} km de você'),
                       trailing: const Icon(LucideIcons.chevronRight),
                       onTap: () {
                         // Navegar para a tela de detalhes do hemocentro
                         Navigator.pushNamed(
                           context,
-                          '/blood-center-details',
+                          BloodCenterDetailsPage.routeName,
                           arguments: {
                             'bloodCenterId': nearbyBloodCenter.bloodCenter.id,
-                            'repository': BloodRepository(),
                           },
                         );
                       },

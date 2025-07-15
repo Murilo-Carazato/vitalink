@@ -10,6 +10,9 @@ class DonationRepository {
         url: '/donations/generate-token',
         headers: MyHttpClient.getHeaders(),
       );
+
+      print(MyHttpClient.getHeaders().toString());
+      print(response.body);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return data['token'];
@@ -33,7 +36,10 @@ class DonationRepository {
     String? medicalNotes,
   }) async {
     try {
+      print("object");
       final token = await generateDonationToken();
+      print("object2");
+
 
       final Map<String, String> body = {
         'donation_token': token,
@@ -47,6 +53,9 @@ class DonationRepository {
       if (medicalNotes != null) body['medical_notes'] = medicalNotes;
       if (donorAgeRange != null) body['donor_age_range'] = donorAgeRange;
       if (donorGender != null) body['donor_gender'] = donorGender;
+
+      print('Scheduling donation with body: $body');
+
 
       final response = await MyHttpClient.post(
         url: '/donations/schedule',

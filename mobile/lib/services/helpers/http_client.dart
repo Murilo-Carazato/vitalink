@@ -4,7 +4,10 @@ import 'package:http/http.dart' as http;
 
 class MyHttpClient {
   static String? _token;
+  // static String? _token = "3|TdMkGp4EHz1iZ3oq7HExr2xTx836rFmScKFceeXdca0075fd";
+
   static const baseUrl = "http://192.168.0.5:8000/api";
+
 
   static void setToken(String newToken) {
     _token = newToken;

@@ -27,6 +27,7 @@ class NewsStoreRequest extends FormRequest
             'image' => ['image','mimes:jpeg,png,jpg'],
             'type' => ['required', 'in:campaing,emergency'],
             'user_id' => ['exists:users,id'],
+            'blood_type' => ['nullable', 'in:positiveA,negativeA,positiveB,negativeB,positiveAB,negativeAB,positiveO,negativeO'],
         ];
     }
 }

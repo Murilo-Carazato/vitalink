@@ -26,9 +26,10 @@ class NewsController extends Controller
 
     public function store(NewsStoreRequest $request)
     {
-        if ($request->user()->isadmin != 'admin' && $request->user()->isadmin != 'superadmin') {
-            return response()->json(['error' => 'Unauthorized'], Response::HTTP_FORBIDDEN);
-        }
+
+        // if ($request->user()->isadmin != 'admin' && $request->user()->isadmin != 'superadmin') {
+        //     return response()->json(['error' => 'Unauthorized'], Response::HTTP_FORBIDDEN);
+        // }
 
         $result = $this->newsService->createNews($request->validated(), $request->user());
 

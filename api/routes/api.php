@@ -38,9 +38,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 // ------------------ CRUD NEWS  ------------------
+// Route::post('/news/register', [NewsController::class, 'store'])->name('news.store');
 Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('/news/{id}', [NewsController::class, 'show'])->name('news.show');
     Route::post('/news/register', [NewsController::class, 'store'])->name('news.store');
+    Route::get('/news/{id}', [NewsController::class, 'show'])->name('news.show');
     Route::put('/news/{id}', [NewsController::class, 'update'])->name('news.update');
     Route::delete('/news/{id}', [NewsController::class, 'destroy'])->name('news.destroy');
 });

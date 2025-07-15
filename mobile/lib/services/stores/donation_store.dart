@@ -217,6 +217,7 @@ class DonationStore extends ChangeNotifier {
 
     try {
       final history = await _repository.getDonationHistory();
+      print('Fetched donation history: ${history} items');
       _donations.value = history;
       notifyListeners();
     } catch (e) {

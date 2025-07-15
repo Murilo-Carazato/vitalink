@@ -9,12 +9,10 @@ class BloodCenterDetailsPage extends StatefulWidget {
   static const routeName = '/blood-center-details';
   
   final int bloodCenterId;
-  final BloodRepository repository;
   
   const BloodCenterDetailsPage({
     Key? key, 
     required this.bloodCenterId,
-    required this.repository,
   }) : super(key: key);
 
   @override
@@ -25,6 +23,7 @@ class _BloodCenterDetailsPageState extends State<BloodCenterDetailsPage> {
   bool _isLoading = true;
   String _errorMessage = '';
   BloodCenterModel? _bloodCenter;
+  BloodRepository repository = BloodRepository();
   
   @override
   void initState() {
@@ -39,7 +38,7 @@ class _BloodCenterDetailsPageState extends State<BloodCenterDetailsPage> {
         _errorMessage = '';
       });
       
-      final bloodCenter = await widget.repository.show(widget.bloodCenterId);
+      final bloodCenter = await repository.show(widget.bloodCenterId);
       
       setState(() {
         _bloodCenter = bloodCenter;

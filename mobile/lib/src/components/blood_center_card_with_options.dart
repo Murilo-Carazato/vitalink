@@ -4,18 +4,17 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:vitalink/services/helpers/blood_center_name.dart';
 import 'package:vitalink/services/models/blood_center_model.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:vitalink/src/pages/blood_center_details.dart';
 
 class BloodCenterCardWithOptions extends StatefulWidget {
   final BloodCenterModel bloodCenter;
   const BloodCenterCardWithOptions({super.key, required this.bloodCenter});
 
   @override
-  State<BloodCenterCardWithOptions> createState() =>
-      _BloodCenterCardWithOptionsState();
+  State<BloodCenterCardWithOptions> createState() => _BloodCenterCardWithOptionsState();
 }
 
-class _BloodCenterCardWithOptionsState
-    extends State<BloodCenterCardWithOptions> {
+class _BloodCenterCardWithOptionsState extends State<BloodCenterCardWithOptions> {
   late ScrollController nameScrollController;
   late ScrollController bcScrollController;
   late ScrollController addressScrollController;
@@ -96,17 +95,17 @@ class _BloodCenterCardWithOptionsState
     return Card(
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
         clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-            side: BorderSide(color: Theme.of(context).dividerTheme.color!)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: BorderSide(color: Theme.of(context).dividerTheme.color!)),
         color: Theme.of(context).appBarTheme.backgroundColor,
         child: InkWell(
           onTap: () {
             // Navegar para a tela de detalhes do hemocentro
             Navigator.pushNamed(
               context,
-              '/blood-center-details',
-              arguments: widget.bloodCenter.id,
+              BloodCenterDetailsPage.routeName,
+              arguments: {
+                'bloodCenterId': widget.bloodCenter.id,
+              },
             );
           },
           child: SizedBox(
@@ -135,14 +134,10 @@ class _BloodCenterCardWithOptionsState
                               child: SingleChildScrollView(
                                 scrollDirection: Axis.horizontal,
                                 controller: nameScrollController,
-                                padding: const EdgeInsets.only(
-                                    left: 14, right: 14, top: 10),
+                                padding: const EdgeInsets.only(left: 14, right: 14, top: 10),
                                 child: Text(
                                   name.formatName().first,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineSmall!
-                                      .copyWith(fontSize: 18),
+                                  style: Theme.of(context).textTheme.headlineSmall!.copyWith(fontSize: 18),
                                   softWrap: true,
                                   maxLines: 1,
                                 ),
@@ -152,56 +147,34 @@ class _BloodCenterCardWithOptionsState
                                 itemBuilder: (context) {
                                   return [
                                     PopupMenuItem(
-                                        enabled:
-                                            widget.bloodCenter.site != null,
+                                        enabled: widget.bloodCenter.site != null,
                                         onTap: () async {
                                           //Abrirá site somente se houver cadastro
-                                          if (widget.bloodCenter.site != null &&
-                                              widget.bloodCenter.site!
-                                                  .isNotEmpty) {
+                                          if (widget.bloodCenter.site != null && widget.bloodCenter.site!.isNotEmpty) {
                                             //Navega para site somente se houver um navegador disponível no dispositivo
-                                            bool canLaunch = await canLaunchUrl(
-                                                Uri.parse(
-                                                    widget.bloodCenter.site!));
+                                            bool canLaunch = await canLaunchUrl(Uri.parse(widget.bloodCenter.site!));
 
                                             if (canLaunch) {
-                                              await launchUrl(Uri.parse(
-                                                  widget.bloodCenter.site!));
+                                              await launchUrl(Uri.parse(widget.bloodCenter.site!));
                                             }
                                           }
                                         },
                                         child: Row(
                                           children: [
-                                            const Icon(
-                                                Icons.open_in_browser_outlined),
+                                            const Icon(Icons.open_in_browser_outlined),
                                             const SizedBox(width: 5),
                                             Text(
                                               'Abrir site',
-                                              style: (widget.bloodCenter.site !=
-                                                          null &&
-                                                      widget.bloodCenter.site!
-                                                          .isNotEmpty)
+                                              style: (widget.bloodCenter.site != null && widget.bloodCenter.site!.isNotEmpty)
                                                   ? null
-                                                  : const TextStyle(
-                                                      fontFamily: 'Inter',
-                                                      color: Color.fromRGBO(
-                                                          172, 169, 169, 1),
-                                                      fontWeight:
-                                                          FontWeight.normal,
-                                                      fontSize: 14),
+                                                  : const TextStyle(fontFamily: 'Inter', color: Color.fromRGBO(172, 169, 169, 1), fontWeight: FontWeight.normal, fontSize: 14),
                                             ),
                                           ],
                                         )),
                                     PopupMenuItem(
                                         onTap: () async {
-                                          bool permissionStatus =
-                                              await requestPermission();
-                                          if (permissionStatus) {
-                                            await openMap(
-                                                widget.bloodCenter.address);
-                                          } else {
-                                            openAppSettings();
-                                          }
+                                            await openMap(widget.bloodCenter.address);
+
                                         },
                                         child: const Row(
                                           children: [
@@ -223,11 +196,7 @@ class _BloodCenterCardWithOptionsState
                         padding: const EdgeInsets.symmetric(horizontal: 14),
                         child: Text(
                           name.formatName().last,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall!
-                              .copyWith(
-                                  fontSize: 14, fontWeight: FontWeight.w500),
+                          style: Theme.of(context).textTheme.headlineSmall!.copyWith(fontSize: 14, fontWeight: FontWeight.w500),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -240,11 +209,7 @@ class _BloodCenterCardWithOptionsState
                           children: [
                             Padding(
                               padding: const EdgeInsets.only(right: 5),
-                              child: Icon(LucideIcons.mapPin,
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .labelSmall!
-                                      .color),
+                              child: Icon(LucideIcons.mapPin, color: Theme.of(context).textTheme.labelSmall!.color),
                             ),
                             Flexible(
                                 child: SingleChildScrollView(

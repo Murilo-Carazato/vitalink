@@ -23,10 +23,6 @@ class NewsService
 
     public function createNews(array $data, User $user): array
     {
-        if (Gate::denies('create', News::class)) {
-            abort(Response::HTTP_FORBIDDEN, 'Unauthorized');
-        }
-
         $data['user_id'] = $user->id;
         $news = News::create($data);
 
