@@ -5,7 +5,6 @@ import 'package:vitalink/services/models/user_model.dart';
 import 'package:vitalink/services/stores/user_store.dart';
 import 'package:vitalink/src/components/checkbox_profile.dart';
 import 'package:vitalink/src/components/rich_text_label.dart';
-import 'package:vitalink/src/components/user_header.dart';
 import 'package:vitalink/styles.dart';
 import 'package:intl/intl.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -14,6 +13,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'dart:io';
 import 'package:vitalink/src/components/custom_dialog.dart';
+import 'package:vitalink/services/stores/auth_store.dart';
+import 'package:provider/provider.dart';
 
 class ProfilePage extends StatefulWidget {
   final UserStore userStore;
@@ -390,7 +391,9 @@ class _ProfilePageState extends State<ProfilePage> {
                       );
 
                       if (confirmed == true) {
-                        await widget.userStore.logout();
+                        final authStore =
+                            Provider.of<AuthStore>(context, listen: false);
+                        await widget.userStore.logout(authStore);
 
                         // Redirecionar para tela de login
                         if (context.mounted) {
