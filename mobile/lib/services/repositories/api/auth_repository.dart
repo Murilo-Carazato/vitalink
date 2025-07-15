@@ -30,6 +30,8 @@ class AuthRepository {
       body: req.toMap(),
     );
 
+      print(res.body);
+
     if (res.statusCode == 200 || res.statusCode == 201)
       return jsonDecode(res.body);
     throw Exception('Registro falhou: ${res.reasonPhrase}');
