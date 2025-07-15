@@ -203,7 +203,7 @@ class _NewsPageState extends State<NewsPage> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      child: Text(MyDates(createdAt: newsList[i].createdAt!).formatDate, style: textTheme.displaySmall),
+                      child: Text("Publicado em: ${MyDates(createdAt: newsList[i].createdAt!).formatDate}", style: textTheme.displaySmall),
                     ),
                     Text(
                       newsList[i].content,
