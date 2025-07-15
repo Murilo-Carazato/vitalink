@@ -22,12 +22,7 @@ import 'package:add_2_calendar/add_2_calendar.dart';
 import 'package:vitalink/services/models/donation_model.dart';
 import 'package:vitalink/src/components/custom_dialog.dart';
 
-//TODO: arrumar o logout; o estado do user_header não é atualizado corretamente, tem q colocar o hot restart
-
-//TODO: confirmar se as notificações das notícias estão funcionando
 //TODO: implementar esqueci a senha
-
-
 
 class HomePage extends StatefulWidget {
   final NearbyStore nearbyStore;
