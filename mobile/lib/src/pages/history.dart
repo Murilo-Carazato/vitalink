@@ -95,53 +95,6 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'confirmed':
-      case 'concluído':
-        return Colors.green;
-      case 'cancelled':
-      case 'cancelado':
-        return Colors.red;
-      case 'scheduled':
-      case 'agendado':
-      case 'pendente':
-        return Colors.orange;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  String _getStatusText(String status) {
-    switch (status.toLowerCase()) {
-      case 'confirmed':
-        return 'Concluído';
-      case 'cancelled':
-        return 'Cancelado';
-      case 'scheduled':
-        return 'Agendado';
-      default:
-        return status;
-    }
-  }
-
-  IconData _getStatusIcon(String status) {
-    switch (status.toLowerCase()) {
-      case 'confirmed':
-      case 'concluído':
-        return Icons.task_alt;
-      case 'cancelled':
-      case 'cancelado':
-        return Icons.cancel;
-      case 'scheduled':
-      case 'agendado':
-      case 'pendente':
-        return Icons.schedule;
-      default:
-        return Icons.info;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     var textTheme = Theme.of(context).textTheme;
@@ -171,11 +124,11 @@ class _HistoryPageState extends State<HistoryPage> {
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(width: 13),
-                    _buildFilterButton('confirmed', 'Concluído', Colors.green),
+                    _buildFilterButton('completed', 'Concluído', Colors.green),
                     const SizedBox(width: 13),
-                    _buildFilterButton('cancelled', 'Cancelado', Styles.border),
+                    _buildFilterButton('cancelled', 'Cancelado', Colors.red),
                     const SizedBox(width: 13),
-                    _buildFilterButton('scheduled', 'Pendente', Styles.border),
+                    _buildFilterButton('scheduled', 'Pendente', Colors.orange),
                   ],
                 ),
                 const SizedBox(height: 44),
@@ -263,9 +216,9 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   Widget _buildDonationCard(DonationModel donation, TextTheme textTheme) {
-    final statusColor = _getStatusColor(donation.status);
-    final statusText = _getStatusText(donation.status);
-    final statusIcon = _getStatusIcon(donation.status);
+    final statusColor = donation.statusColor;
+    final statusText = donation.statusDisplayName;
+    final statusIcon = donation.statusIcon;
     final isPending = donation.status.toLowerCase() == 'scheduled';
 
     return Container(
@@ -315,7 +268,7 @@ class _HistoryPageState extends State<HistoryPage> {
                       "Horário: ${donation.donationTime}",
                       style: textTheme.labelSmall,
                     ),
-                    if (donation.status.toLowerCase() == 'confirmed')
+                    if (donation.status.toLowerCase() == 'completed')
                       Text(
                         "Realizado: ${donation.donationDate.day}/${donation.donationDate.month}/${donation.donationDate.year}",
                         style: textTheme.labelSmall,

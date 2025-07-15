@@ -96,7 +96,7 @@ class DonationModel {
         return 'Agendado';
       case 'confirmed':
         return 'Confirmado';
-      case 'confirmed':
+      case 'completed':
         return 'Concluído';
       case 'cancelled':
         return 'Cancelado';
@@ -113,7 +113,7 @@ class DonationModel {
         return Colors.orange;
       case 'confirmed':
         return Colors.blue;
-      case 'confirmed':
+      case 'completed':
         return Colors.green;
       case 'cancelled':
         return Colors.red;
@@ -121,6 +121,23 @@ class DonationModel {
         return Colors.grey;
       default:
         return Colors.grey;
+    }
+  }
+
+  IconData get statusIcon {
+    switch (status) {
+      case 'scheduled':
+        return Icons.schedule;
+      case 'confirmed':
+        return Icons.thumb_up_alt;
+      case 'completed':
+        return Icons.task_alt;
+      case 'cancelled':
+        return Icons.cancel;
+      case 'no_show':
+        return Icons.person_off;
+      default:
+        return Icons.info;
     }
   }
 

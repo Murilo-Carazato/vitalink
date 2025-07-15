@@ -15,6 +15,8 @@ class BloodCenterStore with ChangeNotifier {
   ValueNotifier<List<BloodCenterModel>> state = ValueNotifier<List<BloodCenterModel>>([]);
   ValueNotifier<List<BloodCenterModel>> stateWhenPaginate = ValueNotifier<List<BloodCenterModel>>([]);
   ValueNotifier<String> erro = ValueNotifier<String>('');
+  ValueNotifier<BloodCenterModel?> selectedBloodCenter = ValueNotifier<BloodCenterModel?>(null);
+
 
   // Atualizado: sempre atualiza stateWhenPaginate, para que a tela sempre use esse notifier
   Future<void> index(bool hasPagination, String search) async {
@@ -36,6 +38,24 @@ class BloodCenterStore with ChangeNotifier {
       erro.value = e.toString();
       state.value = [];
       stateWhenPaginate.value = [];
+    } finally {
+      isLoading.value = false;
+      notifyListeners();
+    }
+  }
+  
+  Future<void> show(int id) async {
+    isLoading.value = true;
+    erro.value = '';
+    try {
+      final result = await (repository as BloodRepository).show(id);
+      selectedBloodCenter.value = result;
+    } on NotFoundException catch (e) {
+      erro.value = e.message;
+      selectedBloodCenter.value = null;
+    } catch (e) {
+      erro.value = e.toString();
+      selectedBloodCenter.value = null;
     } finally {
       isLoading.value = false;
       notifyListeners();
