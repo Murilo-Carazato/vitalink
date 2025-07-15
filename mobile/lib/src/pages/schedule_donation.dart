@@ -4,6 +4,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:vitalink/services/stores/blood_center_store.dart';
 import 'package:vitalink/services/stores/donation_store.dart';
 import 'package:vitalink/services/stores/user_store.dart';
+import 'package:provider/provider.dart';
 
 class ScheduleDonationPage extends StatefulWidget {
   static const routeName = '/schedule-donation';
@@ -57,14 +58,39 @@ class _ScheduleDonationPageState extends State<ScheduleDonationPage> {
   ];
   final List<String> _genders = ['masculino', 'feminino', 'outros'];
 
+  bool _didRunInitialSetup = false;
+
   @override
   void initState() {
     super.initState();
-    print('Initializing ScheduleDonationPage');
-    _selectedBloodcenterId = widget.preSelectedBloodcenterId;
+    // A lógica foi movida para didChangeDependencies para garantir o acesso ao context
+  }
 
-    // Carrega os dados do usuário
-    _loadUserData();
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didRunInitialSetup) {
+      _didRunInitialSetup = true;
+
+      // Adia a execução para depois da fase de build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          // Extrai o ID do hemocentro dos argumentos da rota de forma robusta
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+          final preSelectedId = args?['preSelectedBloodcenterId'] as int? ?? widget.preSelectedBloodcenterId;
+        
+          setState(() {
+            _selectedBloodcenterId = preSelectedId;
+          });
+
+          // Carrega os dados do usuário
+          _loadUserData();
+        }
+        
+        // Carrega a lista completa de hemocentros para o dropdown
+        widget.bloodCenterStore.fetchForDropdown();
+      });
+    }
   }
 
   void _loadUserData() {
@@ -192,7 +218,7 @@ class _ScheduleDonationPageState extends State<ScheduleDonationPage> {
       Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro: ${widget.donationStore.error.value}')),
+        SnackBar(content: Text('Erro: ${widget.donationStore.error}')),
       );
     }
   }
@@ -200,254 +226,250 @@ class _ScheduleDonationPageState extends State<ScheduleDonationPage> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final store = Provider.of<DonationStore>(context);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Agendar Doação'),
         centerTitle: true,
       ),
-      body: ValueListenableBuilder(
-        valueListenable: widget.donationStore.isLoading,
-        builder: (context, isLoading, child) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Seleção de Hemocentro
+              Text('Hemocentro', style: textTheme.titleMedium),
+              const SizedBox(height: 8),
+              ValueListenableBuilder(
+                valueListenable: widget.bloodCenterStore.dropdownBloodCenters,
+                builder: (context, bloodCenters, child) {
+                  return DropdownButtonFormField<int>(
+                    value: _selectedBloodcenterId,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Selecione um hemocentro',
+                    ),
+                    items: bloodCenters.map((center) {
+                      return DropdownMenuItem<int>(
+                        value: center.id,
+                        child: Text(center.name),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedBloodcenterId = value;
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null) {
+                        return 'Por favor, selecione um hemocentro';
+                      }
+                      return null;
+                    },
+                  );
+                },
+              ),
+
+              const SizedBox(height: 20),
+
+              // Tipo Sanguíneo
+              Text('Tipo Sanguíneo', style: textTheme.titleMedium),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _selectedBloodType,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                ),
+                items: _bloodTypes.map((type) {
+                  return DropdownMenuItem<String>(
+                    value: type,
+                    child: Text(type),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedBloodType = value!;
+                  });
+                },
+              ),
+
+              const SizedBox(height: 20),
+
+              // Data e Hora
+              Row(
                 children: [
-                  // Seleção de Hemocentro
-                  Text('Hemocentro', style: textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  ValueListenableBuilder(
-                    valueListenable: widget.bloodCenterStore.state,
-                    builder: (context, bloodCenters, child) {
-                      return DropdownButtonFormField<int>(
-                        value: _selectedBloodcenterId,
-                        isExpanded: true,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'Selecione um hemocentro',
-                        ),
-                        items: bloodCenters.map((center) {
-                          return DropdownMenuItem<int>(
-                            value: center.id,
-                            child: Text(center.name),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedBloodcenterId = value;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null) {
-                            return 'Por favor, selecione um hemocentro';
-                          }
-                          return null;
-                        },
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Tipo Sanguíneo
-                  Text('Tipo Sanguíneo', style: textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: _selectedBloodType,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                    ),
-                    items: _bloodTypes.map((type) {
-                      return DropdownMenuItem<String>(
-                        value: type,
-                        child: Text(type),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedBloodType = value!;
-                      });
-                    },
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Data e Hora
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Data', style: textTheme.titleMedium),
-                            const SizedBox(height: 8),
-                            InkWell(
-                              onTap: _selectDate,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 16),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(LucideIcons.calendar),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                        '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}'),
-                                  ],
-                                ),
-                              ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Data', style: textTheme.titleMedium),
+                        const SizedBox(height: 8),
+                        InkWell(
+                          onTap: _selectDate,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 16),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey),
+                              borderRadius: BorderRadius.circular(4),
                             ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Horário', style: textTheme.titleMedium),
-                            const SizedBox(height: 8),
-                            InkWell(
-                              onTap: _selectTime,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 16),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(LucideIcons.clock),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                        '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}'),
-                                  ],
-                                ),
-                              ),
+                            child: Row(
+                              children: [
+                                const Icon(LucideIcons.calendar),
+                                const SizedBox(width: 8),
+                                Text(
+                                    '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}'),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Informações Adicionais
-                  Text('Informações Adicionais', style: textTheme.titleMedium),
-                  const SizedBox(height: 16),
-
-                  // Faixa Etária
-                  Text('Faixa Etária', style: textTheme.bodyMedium),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: _selectedAgeRange,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
+                      ],
                     ),
-                    items: _ageRanges.map((range) {
-                      return DropdownMenuItem<String>(
-                        value: range,
-                        child: Text(range),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedAgeRange = value!;
-                      });
-                    },
                   ),
-
-                  const SizedBox(height: 16),
-
-                  // Gênero
-                  Text('Gênero', style: textTheme.bodyMedium),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: _selectedGender,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                    ),
-                    items: _genders.map((gender) {
-                      return DropdownMenuItem<String>(
-                        value: gender,
-                        child: Text(gender),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedGender = value!;
-                      });
-                    },
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Primeira vez doando
-                  CheckboxListTile(
-                    title: const Text('É a primeira vez doando sangue?'),
-                    value: _isFirstTimeDonor,
-                    onChanged: (value) {
-                      setState(() {
-                        _isFirstTimeDonor = value ?? false;
-                      });
-                    },
-                    controlAffinity: ListTileControlAffinity.leading,
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Observações Médicas
-                  Text('Observações Médicas (Opcional)',
-                      style: textTheme.bodyMedium),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _medicalNotesController,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText:
-                          'Descreva qualquer condição médica relevante...',
-                    ),
-                    maxLines: 3,
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // Botão de Agendar
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: isLoading ? null : _scheduleDonation,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Text('Agendar Doação'),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Horário', style: textTheme.titleMedium),
+                        const SizedBox(height: 8),
+                        InkWell(
+                          onTap: _selectTime,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 16),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(LucideIcons.clock),
+                                const SizedBox(width: 8),
+                                Text(
+                                    '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}'),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-            ),
-          );
-        },
+
+              const SizedBox(height: 20),
+
+              // Informações Adicionais
+              Text('Informações Adicionais', style: textTheme.titleMedium),
+              const SizedBox(height: 16),
+
+              // Faixa Etária
+              Text('Faixa Etária', style: textTheme.bodyMedium),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _selectedAgeRange,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                ),
+                items: _ageRanges.map((range) {
+                  return DropdownMenuItem<String>(
+                    value: range,
+                    child: Text(range),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedAgeRange = value!;
+                  });
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              // Gênero
+              Text('Gênero', style: textTheme.bodyMedium),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _selectedGender,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                ),
+                items: _genders.map((gender) {
+                  return DropdownMenuItem<String>(
+                    value: gender,
+                    child: Text(gender),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedGender = value!;
+                  });
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              // Primeira vez doando
+              CheckboxListTile(
+                title: const Text('É a primeira vez doando sangue?'),
+                value: _isFirstTimeDonor,
+                onChanged: (value) {
+                  setState(() {
+                    _isFirstTimeDonor = value ?? false;
+                  });
+                },
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+
+              const SizedBox(height: 16),
+
+              // Observações Médicas
+              Text('Observações Médicas (Opcional)',
+                  style: textTheme.bodyMedium),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _medicalNotesController,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText:
+                      'Descreva qualquer condição médica relevante...',
+                ),
+                maxLines: 3,
+              ),
+
+              const SizedBox(height: 32),
+
+              // Botão de Agendar
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: store.isLoading ? null : _scheduleDonation,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: store.isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Agendar Doação'),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
