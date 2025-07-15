@@ -17,6 +17,13 @@ class UserStore with ChangeNotifier {
     try {
       final result = await repository.getUser();
       state.value = result;
+
+      // Restaura o token do usuário para o cliente HTTP
+      if (result.isNotEmpty &&
+          result.first.token != null &&
+          result.first.token!.isNotEmpty) {
+        MyHttpClient.setToken(result.first.token!);
+      }
     } on NotFoundException catch (e) {
       erro.value = e.message;
     } finally {
