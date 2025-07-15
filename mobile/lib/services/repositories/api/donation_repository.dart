@@ -3,26 +3,6 @@ import 'package:vitalink/services/helpers/http_client.dart';
 import 'package:vitalink/services/models/donation_model.dart';
 
 class DonationRepository {
-  // Gerar token de doação
-  Future<String> generateDonationToken() async {
-    try {
-      final response = await MyHttpClient.get(
-        url: '/donations/generate-token',
-        headers: MyHttpClient.getHeaders(),
-      );
-
-      print(MyHttpClient.getHeaders().toString());
-      print(response.body);
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data['token'];
-      } else {
-        throw Exception('Erro ao gerar token: ${response.reasonPhrase}');
-      }
-    } catch (e) {
-      throw Exception('Erro ao gerar token: $e');
-    }
-  }
 
   // Agendar nova doação
   Future<DonationModel> scheduleDonation({
@@ -36,13 +16,7 @@ class DonationRepository {
     String? medicalNotes,
   }) async {
     try {
-      print("object");
-      final token = await generateDonationToken();
-      print("object2");
-
-
       final Map<String, String> body = {
-        'donation_token': token,
         'blood_type': bloodType,
         'donation_date': donationDate.toIso8601String().split('T')[0],
         'donation_time': donationTime,
@@ -57,21 +31,30 @@ class DonationRepository {
       print('Scheduling donation with body: $body');
 
 
-      final response = await MyHttpClient.post(
+      final response = await MyHttpClient.postString(
         url: '/donations/schedule',
-        headers: MyHttpClient.getHeaders(),
+        headers: MyHttpClient.getHeaders(isJson: true),
         body: body,
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
         return DonationModel.fromJson(data['data']);
+      } else if (response.statusCode == 422) {
+        final errorData = jsonDecode(response.body);
+        final errors = errorData['errors'] as Map<String, dynamic>?;
+        if (errors != null && errors.isNotEmpty) {
+          final firstErrorList = errors.values.first as List;
+          if (firstErrorList.isNotEmpty) {
+            throw Exception(firstErrorList.first);
+          }
+        }
+        throw Exception('Erro de validação do servidor.');
       } else {
         throw Exception('Erro ao agendar doação: ${response.reasonPhrase}');
       }
     } catch (e) {
-      throw Exception(
-          'Erro ao agendar doação: $e');
+      rethrow;
     }
   }
 
@@ -138,9 +121,10 @@ class DonationRepository {
   // Cancelar doação
   Future<DonationModel> cancelDonation(String token) async {
     try {
-      final response = await MyHttpClient.post(
+      final response = await MyHttpClient.postString(
         url: '/donations/$token/cancel',
-        headers: MyHttpClient.getHeaders(),
+        headers: MyHttpClient.getHeaders(isJson: true),
+        body: {},
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -148,7 +132,8 @@ class DonationRepository {
       } else {
         throw Exception('Erro ao cancelar doação: ${response.reasonPhrase}');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('error: $e , stackTrace: $stackTrace');
       throw Exception('Erro ao cancelar doação: $e');
     }
   }
@@ -163,6 +148,7 @@ class DonationRepository {
     String? donorGender,
     bool? isFirstTimeDonor,
     String? medicalNotes,
+    String? status,
   }) async {
     try {
       Map<String, dynamic> data = {};
@@ -176,11 +162,12 @@ class DonationRepository {
       if (isFirstTimeDonor != null)
         data['is_first_time_donor'] = isFirstTimeDonor;
       if (medicalNotes != null) data['medical_notes'] = medicalNotes;
+      if (status != null) data['status'] = status;
 
-      final response = await MyHttpClient.put(
+      final response = await MyHttpClient.putString(
         url: '/donations/$token',
-        headers: MyHttpClient.getHeaders(),
-        body: data.map((key, value) => MapEntry(key, value.toString())),
+        headers: MyHttpClient.getHeaders(isJson: true),
+        body: data,
       );
       if (response.statusCode == 200) {
         final resData = jsonDecode(response.body);
@@ -190,6 +177,25 @@ class DonationRepository {
       }
     } catch (e) {
       throw Exception('Erro ao atualizar doação: $e');
+    }
+  }
+
+  // Marcar doação como concluída
+  Future<DonationModel> completeDonation(String token) async {
+    try {
+      final response = await MyHttpClient.postString(
+        url: '/donations/$token/complete',
+        headers: MyHttpClient.getHeaders(isJson: true),
+        body: {},
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return DonationModel.fromJson(data['data']);
+      } else {
+        throw Exception('Erro ao concluir doação: ${response.reasonPhrase}');
+      }
+    } catch (e) {
+      throw Exception('Erro ao concluir doação: $e');
     }
   }
 
