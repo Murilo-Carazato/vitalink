@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\DonationStatus;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class DonationConfirmRequest extends FormRequest
 {
@@ -14,7 +16,7 @@ class DonationConfirmRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['required', 'in:confirmed,cancelled'],
+            'status' => ['required', Rule::in([DonationStatus::CONFIRMED, DonationStatus::CANCELLED])],
             'staff_notes' => ['nullable', 'string', 'max:1000'],
             'donation_time' => ['nullable', 'date_format:H:i'],
         ];
