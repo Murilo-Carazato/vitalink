@@ -13,6 +13,7 @@ class UserModel {
   final String? bloodType;
   final String? email;
   final String? token;
+  final String? profilePhotoPath;
 
   UserModel({
     required this.id,
@@ -25,6 +26,7 @@ class UserModel {
     this.hasPermanentMakeup = false,
     this.email,
     this.token,
+    this.profilePhotoPath,
   });
 
   //O código a seguir sobrescreve o operador "==". Sendo assim, compara duas instâncias e verifica se são iguais.
@@ -42,7 +44,8 @@ class UserModel {
         other.hasMicropigmentation == hasMicropigmentation &&
         other.hasPermanentMakeup == hasPermanentMakeup &&
         other.email == email &&
-        other.token == token;
+        other.token == token &&
+        other.profilePhotoPath == profilePhotoPath;
   }
 
   UserModel copyWith({
@@ -56,6 +59,7 @@ class UserModel {
     bool? hasPermanentMakeup,
     String? email,
     String? token,
+    String? profilePhotoPath,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -68,6 +72,7 @@ class UserModel {
       hasPermanentMakeup: hasPermanentMakeup ?? this.hasPermanentMakeup,
       email: email ?? this.email,
       token: token ?? this.token,
+      profilePhotoPath: profilePhotoPath ?? this.profilePhotoPath,
     );
   }
 
@@ -83,6 +88,7 @@ class UserModel {
       'hasPermanentMakeup': hasPermanentMakeup ? 1 : 0,
       'email': email,
       'token': token,
+      'profile_photo_path': profilePhotoPath,
     };
   }
 
@@ -98,6 +104,7 @@ class UserModel {
       hasPermanentMakeup: (map['hasPermanentMakeup'] ?? 0) == 1,
       email: map['email'],
       token: map['token'],
+      profilePhotoPath: map['profile_photo_path'] as String?,
     );
   }
 
@@ -108,7 +115,7 @@ class UserModel {
 
   @override
   String toString() {
-    return 'UserModel(id: $id, name: $name, birthDate: $birthDate, bloodType: $bloodType, viewedTutorial: $viewedTutorial, hasTattoo: $hasTattoo, hasMicropigmentation: $hasMicropigmentation, hasPermanentMakeup: $hasPermanentMakeup, email: $email, token: $token)';
+    return 'UserModel(id: $id, name: $name, birthDate: $birthDate, bloodType: $bloodType, viewedTutorial: $viewedTutorial, hasTattoo: $hasTattoo, hasMicropigmentation: $hasMicropigmentation, hasPermanentMakeup: $hasPermanentMakeup, email: $email, token: $token, profilePhotoPath: $profilePhotoPath)';
   }
 
   @override
@@ -122,6 +129,7 @@ class UserModel {
         hasMicropigmentation.hashCode ^
         hasPermanentMakeup.hashCode ^
         email.hashCode ^
-        token.hashCode;
+        token.hashCode ^
+        profilePhotoPath.hashCode;
   }
 }
