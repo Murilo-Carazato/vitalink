@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:vitalink/services/stores/auth_store.dart';
+import 'package:vitalink/services/stores/user_store.dart'; // Added import for UserStore
 import 'package:vitalink/styles.dart';
 import 'package:vitalink/src/components/custom_dialog.dart';
 
@@ -79,6 +80,10 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
 
       if (success) {
         if (mounted) {
+          // Carrega os dados do novo usuário no UserStore ANTES de navegar
+          final userStore = Provider.of<UserStore>(context, listen: false);
+          await userStore.loadCurrentUser();
+
           Navigator.of(context).pushReplacementNamed('/tab');
         }
       } else {
