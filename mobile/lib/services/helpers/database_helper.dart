@@ -20,7 +20,7 @@ class DatabaseHelper {
   _initDatabase() async {
     Database localStorage = await openDatabase(
       join(await getDatabasesPath(), 'bloodbank.db'),
-      version: 3, // <- mudou de 2 para 3
+      version: 5, // <- mudei de 4 para 5
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -41,11 +41,21 @@ class DatabaseHelper {
     if (oldVersion < 3) {
       await db.execute('ALTER TABLE User ADD COLUMN profile_photo_path TEXT');
     }
+    if (oldVersion < 4) {
+      // Recria a tabela de usuário para usar o ID do servidor como chave primária
+      await db.execute('DROP TABLE IF EXISTS User');
+      await db.execute(_user);
+    }
+    if (oldVersion < 5) {
+      // Garante que a tabela User seja recriada com a nova estrutura.
+      await db.execute('DROP TABLE IF EXISTS User');
+      await db.execute(_user);
+    }
   }
 
   String get _user => '''
     CREATE TABLE IF NOT EXISTS User (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id INTEGER PRIMARY KEY,
         name TEXT NOT NULL,
         birthDate TEXT NOT NULL,
         bloodType TEXT NOT NULL,
