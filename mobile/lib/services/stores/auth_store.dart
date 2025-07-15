@@ -59,6 +59,73 @@ class AuthStore with ChangeNotifier {
     }
   }
 
+  Future<bool> loginWithGoogle() async {
+    _start();
+    try {
+      final data = await _authRepo.loginWithGoogle();
+      await _updateLocalUser(data);
+      _finish();
+      return true;
+    } catch (e, stackTrace) {
+      print('error: $e');
+      print('stackTrace: $stackTrace');
+      _error(e);
+      return false;
+    }
+  }
+
+  Future<bool> forgotPassword({required String email}) async {
+    _start();
+    try {
+      await _authRepo.forgotPassword(email: email);
+      _finish();
+      return true;
+    } catch (e) {
+      _error(e);
+      return false;
+    }
+  }
+
+  Future<bool> resetPassword({
+    required String token,
+    required String email,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    _start();
+    try {
+      await _authRepo.resetPassword(
+        token: token,
+        email: email,
+        password: password,
+        passwordConfirmation: passwordConfirmation,
+      );
+      _finish();
+      return true;
+    } catch (e) {
+      _error(e);
+      return false;
+    }
+  }
+
+  Future<void> signOut() async {
+    // Adiciona o logout do Firebase/Google
+    await _authRepo.signOut();
+    
+    // Mantém a lógica de limpeza do usuário local
+    if (_userRepo is UserRepository) {
+      final userRepo = _userRepo as UserRepository;
+      final currentUser = await userRepo.getAuthenticatedUser();
+      if (currentUser != null) {
+        final loggedOutUser = currentUser.copyWith(token: '');
+        await userRepo.updateUser(loggedOutUser);
+      }
+    }
+    MyHttpClient.setToken('');
+    // Notifica os ouvintes para atualizar a UI
+    notifyListeners();
+  }
+
   Future<void> _updateLocalUser(Map<String, dynamic> data) async {
     final token = data['token'];
     final userJson = data.containsKey('user') ? data['user'] : data['data'];
