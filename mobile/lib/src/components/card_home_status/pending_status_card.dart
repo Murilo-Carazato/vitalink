@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:vitalink/services/models/donation_model.dart';
+import 'package:vitalink/styles.dart';
 
 class PendingStatusCard extends StatelessWidget {
   final DonationModel? donation;
@@ -40,55 +41,57 @@ class PendingStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        color: const Color(0xFFFFF500),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: SizedBox(
-            width: MediaQuery.sizeOf(context).width,
-            height: 58,
-            child: LayoutBuilder(
-              builder: (context, constraints) => Flex(
-                mainAxisSize: MainAxisSize.max,
-                direction: Axis.horizontal,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: constraints.maxWidth * (10 / 100),
-                    child: const Icon(
-                      LucideIcons.alarmMinus,
-                      color: Colors.black,
-                    ),
+    final theme = Theme.of(context);
+    final cardColor = Colors.orange; // Cor base para o status "pendente"
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: cardColor.withOpacity(0.5),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            LucideIcons.hourglass,
+            color: cardColor,
+            size: 32,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  donation != null
+                      ? 'Próxima doação agendada para:'
+                      : 'Você poderá doar novamente em:',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.8),
                   ),
-                  SizedBox(width: constraints.maxWidth * (2 / 100)),
-                  SizedBox(
-                    width: constraints.maxWidth * (88 / 100),
-                    child: Flex(
-                      direction: Axis.vertical,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          donation != null
-                              ? 'Próxima doação agendada para:'
-                              : 'Pode doar sangue novamente em:',
-                          style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                              fontSize: 14,
-                              overflow: TextOverflow.ellipsis),
-                          maxLines: 1,
-                        ),
-                        Text(_getRemainingTimeText(),
-                            style: Theme.of(context).textTheme.bodyMedium!,
-                            softWrap: true),
-                      ],
-                    ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _getRemainingTimeText(),
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: cardColor,
                   ),
-                ],
-              ),
+                  softWrap: true,
+                ),
+              ],
             ),
           ),
-        ));
+        ],
+      ),
+    );
   }
 }
