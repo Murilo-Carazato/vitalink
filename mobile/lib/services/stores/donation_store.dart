@@ -1,42 +1,64 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:vitalink/services/helpers/http_client.dart';
 import 'package:vitalink/services/models/donation_model.dart';
 import 'package:vitalink/services/repositories/api/donation_repository.dart';
+import 'package:vitalink/services/stores/user_store.dart';
 
 class DonationStore extends ChangeNotifier {
   final DonationRepository _repository;
+  final UserStore _userStore;
 
-  DonationStore({required DonationRepository repository})
-      : _repository = repository;
+  DonationStore(
+      {required DonationRepository repository, required UserStore userStore})
+      : _repository = repository,
+        _userStore = userStore;
 
   // Estados
-  final ValueNotifier<List<DonationModel>> _donations = ValueNotifier([]);
-  final ValueNotifier<DonationModel?> _nextDonation = ValueNotifier(null);
-  final ValueNotifier<bool> _isLoading = ValueNotifier(false);
-  final ValueNotifier<String> _error = ValueNotifier('');
-  final ValueNotifier<Map<String, dynamic>> _statistics = ValueNotifier({});
+  List<DonationModel> _donations = [];
+  DonationModel? _nextDonation;
+  bool _isLoading = false;
+  String _error = '';
+  Map<String, dynamic> _statistics = {};
 
   // Getters
-  ValueNotifier<List<DonationModel>> get donations => _donations;
-  ValueNotifier<DonationModel?> get nextDonation => _nextDonation;
-  ValueNotifier<bool> get isLoading => _isLoading;
-  ValueNotifier<String> get error => _error;
-  ValueNotifier<Map<String, dynamic>> get statistics => _statistics;
+  List<DonationModel> get donations => _donations;
+  DonationModel? get nextDonation => _nextDonation;
+  bool get isLoading => _isLoading;
+  String get error => _error;
+  Map<String, dynamic> get statistics => _statistics;
 
   // Métodos privados
   void _setLoading(bool value) {
-    _isLoading.value = value;
+    _isLoading = value;
     notifyListeners();
   }
 
   void _setError(String value) {
-    _error.value = value;
+    if (value.startsWith('Exception: ')) {
+      _error = value.substring(11); // Remove "Exception: "
+    } else {
+      _error = value;
+    }
     notifyListeners();
   }
 
   void _clearError() {
-    _error.value = '';
-    notifyListeners();
+    _error = '';
+  }
+
+  Future<bool> _ensureUserIsLoaded() async {
+    // Se o token não estiver definido no cliente, tenta carregar o usuário
+    if (MyHttpClient.getToken() == null || MyHttpClient.getToken()!.isEmpty) {
+      await _userStore.getUser();
+    }
+    
+    // Se, mesmo após a tentativa, o token não estiver disponível, a ação falha.
+    if (MyHttpClient.getToken() == null || MyHttpClient.getToken()!.isEmpty) {
+      _setError("Usuário não autenticado.");
+      return false;
+    }
+    return true;
   }
 
   // Agendar doação
@@ -50,6 +72,7 @@ class DonationStore extends ChangeNotifier {
     bool isFirstTimeDonor = false,
     String? medicalNotes,
   }) async {
+    if (!await _ensureUserIsLoaded()) return null;
     _setLoading(true);
     _clearError();
 
@@ -65,19 +88,17 @@ class DonationStore extends ChangeNotifier {
         medicalNotes: medicalNotes,
       );
 
-      // Atualiza a lista de doações - certifique-se de que é uma nova instância da lista
-      final updatedDonations = [donation, ..._donations.value];
-      _donations.value = updatedDonations;
-
-      // Atualiza próxima doação
-      if (_nextDonation.value == null ||
-          donationDate.isBefore(_nextDonation.value!.donationDate)) {
-        _nextDonation.value = donation;
+      _donations = [donation, ..._donations];
+      
+      if (_nextDonation == null ||
+          donationDate.isBefore(_nextDonation!.donationDate)) {
+        _nextDonation = donation;
       }
 
       notifyListeners();
       return donation;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('error: $e , stackTrace: $stackTrace');
       _setError(e.toString());
       return null;
     } finally {
@@ -103,9 +124,10 @@ class DonationStore extends ChangeNotifier {
         dateTo: dateTo,
       );
 
-      _donations.value = donations;
+      _donations = donations;
       notifyListeners();
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('error: $e , stackTrace: $stackTrace');
       _setError(e.toString());
     } finally {
       _setLoading(false);
@@ -114,14 +136,16 @@ class DonationStore extends ChangeNotifier {
 
   // Buscar próxima doação
   Future<void> fetchNextDonation() async {
+    if (!await _ensureUserIsLoaded()) return;
     _setLoading(true);
     _clearError();
 
     try {
       final donation = await _repository.getNextDonation();
-      _nextDonation.value = donation;
+      _nextDonation = donation;
       notifyListeners();
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('error: $e , stackTrace: $stackTrace');
       _setError(e.toString());
     } finally {
       _setLoading(false);
@@ -130,29 +154,29 @@ class DonationStore extends ChangeNotifier {
 
   // Cancelar doação
   Future<bool> cancelDonation(String token) async {
+    if (!await _ensureUserIsLoaded()) return false;
     _setLoading(true);
     _clearError();
 
     try {
       final updatedDonation = await _repository.cancelDonation(token);
 
-      // Atualiza a lista local
       final index =
-          _donations.value.indexWhere((d) => d.donationToken == token);
+          _donations.indexWhere((d) => d.donationToken == token);
       if (index != -1) {
-        final updatedList = List<DonationModel>.from(_donations.value);
+        final updatedList = List<DonationModel>.from(_donations);
         updatedList[index] = updatedDonation;
-        _donations.value = updatedList;
+        _donations = updatedList;
       }
 
-      // Atualiza próxima doação se necessário
-      if (_nextDonation.value?.donationToken == token) {
+      if (_nextDonation?.donationToken == token) {
         await fetchNextDonation();
       }
 
       notifyListeners();
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('error: $e , stackTrace: $stackTrace');
       _setError(e.toString());
       return false;
     } finally {
@@ -170,7 +194,9 @@ class DonationStore extends ChangeNotifier {
     String? donorGender,
     bool? isFirstTimeDonor,
     String? medicalNotes,
+    String? status,
   }) async {
+    if (!await _ensureUserIsLoaded()) return false;
     _setLoading(true);
     _clearError();
 
@@ -184,25 +210,56 @@ class DonationStore extends ChangeNotifier {
         donorGender: donorGender,
         isFirstTimeDonor: isFirstTimeDonor,
         medicalNotes: medicalNotes,
+        status: status,
       );
 
-      // Atualiza a lista local
       final index =
-          _donations.value.indexWhere((d) => d.donationToken == token);
+          _donations.indexWhere((d) => d.donationToken == token);
       if (index != -1) {
-        final updatedList = List<DonationModel>.from(_donations.value);
+        final updatedList = List<DonationModel>.from(_donations);
         updatedList[index] = updatedDonation;
-        _donations.value = updatedList;
+        _donations = updatedList;
       }
 
-      // Atualiza próxima doação se necessário
-      if (_nextDonation.value?.donationToken == token) {
-        _nextDonation.value = updatedDonation;
+      if (_nextDonation?.donationToken == token) {
+        _nextDonation = updatedDonation;
       }
 
       notifyListeners();
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('error: $e , stackTrace: $stackTrace');
+      _setError(e.toString());
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Marcar doação como concluída
+  Future<bool> completeDonation(String token) async {
+    if (!await _ensureUserIsLoaded()) return false;
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final completedDonation = await _repository.completeDonation(token);
+
+      final index = _donations.indexWhere((d) => d.donationToken == token);
+      if (index != -1) {
+        final updatedList = List<DonationModel>.from(_donations);
+        updatedList[index] = completedDonation;
+        _donations = updatedList;
+      }
+
+      if (_nextDonation?.donationToken == token) {
+        await fetchNextDonation(); // Recarrega a próxima doação
+      }
+
+      notifyListeners();
+      return true;
+    } catch (e, stackTrace) {
+      print('error: $e , stackTrace: $stackTrace');
       _setError(e.toString());
       return false;
     } finally {
@@ -212,15 +269,17 @@ class DonationStore extends ChangeNotifier {
 
   // Buscar histórico
   Future<void> fetchDonationHistory() async {
+    if (!await _ensureUserIsLoaded()) return;
     _setLoading(true);
     _clearError();
 
     try {
       final history = await _repository.getDonationHistory();
-      print('Fetched donation history: ${history} items');
-      _donations.value = history;
+      _donations = history;
+      print('history: $history');
       notifyListeners();
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('error: $e , stackTrace: $stackTrace');
       _setError(e.toString());
     } finally {
       _setLoading(false);
@@ -251,7 +310,8 @@ class DonationStore extends ChangeNotifier {
     try {
       final donation = await _repository.getDonationByToken(token);
       return donation;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('error: $e , stackTrace: $stackTrace');
       _setError(e.toString());
       return null;
     } finally {
@@ -264,19 +324,10 @@ class DonationStore extends ChangeNotifier {
   List<DonationModel> getFilteredDonations({String? status}) {
     // Primeiro filtra por status se necessário
     var filtered = status != null
-        ? _donations.value
+        ? _donations
             .where((d) => d.status.toLowerCase() == status.toLowerCase())
             .toList()
-        : List<DonationModel>.from(_donations.value);
-
-    // Filtra apenas as doações que contêm o token do usuário nas notas médicas
-    if (MyHttpClient.getHeaders().isNotEmpty) {
-      filtered = filtered
-          .where((d) =>
-              d.medicalNotes != null &&
-              d.medicalNotes!.contains('[USER_TOKEN:${MyHttpClient.getHeaders()}]'))
-          .toList();
-    }
+        : List<DonationModel>.from(_donations);
 
     // Ordena por data (mais recente primeiro)
     filtered.sort((a, b) => b.donationDate.compareTo(a.donationDate));
@@ -286,20 +337,15 @@ class DonationStore extends ChangeNotifier {
 
   // Limpar dados
   void clearData() {
-    _donations.value = [];
-    _nextDonation.value = null;
-    _statistics.value = {};
+    _donations = [];
+    _nextDonation = null;
+    _statistics = {};
     _clearError();
     notifyListeners();
   }
 
   @override
   void dispose() {
-    _donations.dispose();
-    _nextDonation.dispose();
-    _isLoading.dispose();
-    _error.dispose();
-    _statistics.dispose();
     super.dispose();
   }
 }
