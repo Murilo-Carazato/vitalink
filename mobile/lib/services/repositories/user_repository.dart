@@ -34,6 +34,36 @@ class UserRepository implements IUserRepository {
     return convertedList;
   }
 
+  Future<UserModel?> getAuthenticatedUser() async {
+    db = await DatabaseHelper.instance.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'User',
+      where: 'token IS NOT NULL AND token != ?',
+      whereArgs: [''],
+      limit: 1,
+    );
+
+    if (maps.isNotEmpty) {
+      return UserModel.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  Future<UserModel?> getUserById(int id) async {
+    db = await DatabaseHelper.instance.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'User',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+
+    if (maps.isNotEmpty) {
+      return UserModel.fromMap(maps.first);
+    }
+    return null;
+  }
+
   @override
   createUser(UserModel user) async {
     db = await DatabaseHelper.instance.database;
