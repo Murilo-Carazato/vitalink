@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:vitalink/services/helpers/database_helper.dart';
 import 'package:vitalink/services/helpers/local_notification_helper.dart';
-import 'package:vitalink/services/models/user_model.dart';
 import 'package:vitalink/services/repositories/api/auth_repository.dart';
 import 'package:vitalink/services/repositories/api/blood_center_repository.dart';
 import 'package:vitalink/services/repositories/api/donation_repository.dart';
@@ -14,10 +13,13 @@ import 'package:vitalink/services/stores/donation_store.dart';
 import 'package:vitalink/services/stores/nearby_store.dart';
 import 'package:vitalink/services/stores/user_store.dart';
 import 'package:vitalink/src/app.dart';
-import 'package:provider/provider.dart';
-import 'src/settings/settings_controller.dart';
-import 'src/settings/settings_service.dart';
+import 'package:vitalink/src/pages/auth.dart';
+import 'package:vitalink/src/pages/introduction_screen.dart';
+import 'package:vitalink/src/pages/reset_password_page.dart';
+import 'package:vitalink/src/settings/settings_controller.dart';
+import 'package:vitalink/src/settings/settings_service.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
