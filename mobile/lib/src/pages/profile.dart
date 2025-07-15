@@ -42,11 +42,13 @@ class _ProfilePageState extends State<ProfilePage> {
   late bool hasTattoo;
   late bool hasMicropigmentation;
   late bool hasPermanentMakeup;
-  late String oldBloodTypeTopic;
+  late String oldBloodTypeTopic; // <-- Adicionando de volta
+  late UserModel _initialUser; // <-- Guarda o estado inicial
 
   @override
   void initState() {
     var user = widget.userStore.state.value.first;
+    _initialUser = user; // <-- Salva o usuário no momento que a tela é carregada
     oldBloodTypeTopic =
         convertBloodType(user.bloodType!); // Salva o tópico antigo
     subscribeToBloodTypeTopic(user.bloodType!);
@@ -322,24 +324,27 @@ class _ProfilePageState extends State<ProfilePage> {
                     onPressed: () async {
                       if (_profileFormKey.currentState!.validate()) {
                         _profileFormKey.currentState!.save();
-                        var instantiatedUser =
-                            widget.userStore.state.value.first;
+
+                        // Captura o usuário atual do store para pegar o caminho da foto,
+                        // que é atualizado de forma independente do formulário.
+                        final currentUser = widget.userStore.state.value.first;
+
                         var newUser = UserModel(
-                          id: instantiatedUser
-                              .id, // <-- AQUI: usa o id real (12, 16, etc.)
+                          id: _initialUser.id,
                           name: nameController.text.trim(),
                           birthDate: dateInput.text.trim(),
                           bloodType: bloodTypeController.text.trim(),
                           hasTattoo: hasTattoo,
                           hasMicropigmentation: hasMicropigmentation,
                           hasPermanentMakeup: hasPermanentMakeup,
-                          viewedTutorial: true,
-                          email: instantiatedUser.email, // <-- mantenha o email
-                          token: instantiatedUser.token, // <-- mantenha o token
-                          profilePhotoPath: instantiatedUser
-                              .profilePhotoPath, // <-- adicione o caminho da foto
+                          viewedTutorial: _initialUser.viewedTutorial,
+                          email: _initialUser.email,
+                          token: _initialUser.token,
+                          profilePhotoPath: currentUser.profilePhotoPath,
                         );
-                        if (instantiatedUser == newUser) {
+
+                        // Compara o usuário construído a partir do formulário com o usuário INICIAL
+                        if (_initialUser == newUser) {
                           ScaffoldMessenger.of(context).hideCurrentSnackBar(
                               reason: SnackBarClosedReason.swipe);
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -347,12 +352,10 @@ class _ProfilePageState extends State<ProfilePage> {
                                   content: Text('Nenhum dado alterado')));
                         } else {
                           // Se mudou o tipo sanguíneo, desinscreve do antigo e inscreve no novo
-                          if (instantiatedUser.bloodType != newUser.bloodType) {
+                          if (_initialUser.bloodType != newUser.bloodType) {
                             unsubscribeFromBloodTypeTopic(
-                                instantiatedUser.bloodType!);
+                                _initialUser.bloodType!);
                             subscribeToBloodTypeTopic(newUser.bloodType!);
-                            oldBloodTypeTopic =
-                                convertBloodType(newUser.bloodType!);
                           }
                           await widget.userStore
                               .updateUser(newUser: newUser)
