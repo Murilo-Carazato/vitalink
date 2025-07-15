@@ -22,19 +22,19 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/user/logout', [AuthController::class, 'destroy'])->name('user.logout');
     Route::get('/user', [UserController::class, 'index'])->name('user.index');
     Route::get('/user/donations', [DonationController::class, 'getDonationsForUser'])->name('user.donations');
-    Route::put('/user/{id}', [UserController::class, 'update'])->name('user.update');
-    Route::delete('/user/{id}', [UserController::class, 'destroy'])->name('user.destroy');
+    Route::put('/user/{user}', [UserController::class, 'update'])->name('user.update');
+    Route::delete('/user/{user}', [UserController::class, 'destroy'])->name('user.destroy');
 });
 Route::post('/user/login', [AuthController::class, 'store'])->name('user.login');
 Route::post('/user/register', [UserController::class, 'store'])->name('user.store');
 
 // ------------------ CRUD BLOOD CENTER  ------------------
 Route::get('/blood-center', [BloodCenterController::class, 'index'])->name('blood-center.index');
-Route::get('/blood-center/{id}', [BloodCenterController::class, 'show'])->name('blood-center.show');
+Route::get('/blood-center/{blood_center}', [BloodCenterController::class, 'show'])->name('blood-center.show');
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/blood-center/register', [BloodCenterController::class, 'store'])->name('blood-center.store');
-    Route::put('/blood-center/{id}', [BloodCenterController::class, 'update'])->name('blood-center.update');
-    Route::delete('/blood-center/{id}', [BloodCenterController::class, 'destroy'])->name('blood-center.destroy');
+    Route::put('/blood-center/{blood_center}', [BloodCenterController::class, 'update'])->name('blood-center.update');
+    Route::delete('/blood-center/{blood_center}', [BloodCenterController::class, 'destroy'])->name('blood-center.destroy');
 });
 
 // ------------------ CRUD NEWS  ------------------
@@ -52,9 +52,9 @@ Route::get('/news', [NewsController::class, 'index'])->name('news.index'); // co
 
 // Rotas de doação que exigem autenticação (doador)
 Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('/donations/generate-token', [DonationController::class, 'generateToken'])->name('donations.generate-token');
     Route::post('/donations/schedule', [DonationController::class, 'store'])->name('donations.store');
     Route::post('/donations/{token}/cancel', [DonationController::class, 'cancel'])->name('donations.cancel');
+    Route::post('/donations/{token}/complete', [DonationController::class, 'complete'])->name('donations.complete');
 });
 
 // Rotas para admin/hemocentro (podem exigir outro tipo de auth no futuro)
