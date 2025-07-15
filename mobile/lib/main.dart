@@ -53,7 +53,7 @@ void main() async {
     userStore.state.value = users;
   }
   final bloodCenterStore = BloodCenterStore(repository: BloodRepository());
-  final donationStore = DonationStore(repository: DonationRepository());
+  final donationStore = DonationStore(repository: DonationRepository(), userStore: userStore);
 
   runApp(MultiProvider(
     providers: [
