@@ -5,6 +5,9 @@ import 'package:vitalink/src/components/button_settings.dart';
 import 'package:vitalink/services/stores/donation_store.dart';
 import 'package:vitalink/services/models/donation_model.dart';
 import 'package:vitalink/styles.dart';
+import 'package:add_2_calendar/add_2_calendar.dart';
+import 'package:vitalink/src/components/custom_dialog.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -52,64 +55,80 @@ class _HistoryPageState extends State<HistoryPage> {
     });
   }
 
-  void _showCompleteDialog(DonationModel donation) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Concluir Doação'),
-        content: const Text('Tem certeza que deseja marcar esta doação como concluída?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Não'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final scaffoldMessenger = ScaffoldMessenger.of(context);
-              Navigator.pop(context);
-              final success =
-                  await donationStore.completeDonation(donation.donationToken);
-              if (success && mounted) {
-                scaffoldMessenger.showSnackBar(
-                  const SnackBar(
-                      content: Text('Doação marcada como concluída')),
-                );
-              }
-            },
-            child: const Text('Sim'),
-          ),
-        ],
-      ),
+  void _addDonationToCalendar(DonationModel donation) {
+    // Parse time string 'HH:mm'
+    final timeParts = donation.donationTime.split(':');
+    final hour = int.parse(timeParts[0]);
+    final minute = int.parse(timeParts[1]);
+
+    final startDate = DateTime(
+      donation.donationDate.year,
+      donation.donationDate.month,
+      donation.donationDate.day,
+      hour,
+      minute,
     );
+
+    final event = Event(
+      title: 'Doação de Sangue - Vitalink',
+      description:
+          'Doação de sangue agendada no hemocentro ${donation.bloodcenter?.name}. Não se esqueça de levar um documento com foto e se alimentar bem antes!',
+      location: donation.bloodcenter?.address ?? 'Endereço não informado',
+      startDate: startDate,
+      endDate: startDate.add(const Duration(hours: 1)), // Assume 1 hour duration
+      allDay: false,
+    );
+    Add2Calendar.addEvent2Cal(event);
   }
 
-  void _showCancelDialog(DonationModel donation) {
-    showDialog(
+  void _showCompleteDialog(DonationModel donation) async {
+    final confirmed = await showCustomDialog(
+        context: context,
+        title: 'Concluir Doação',
+        content: 'Tem certeza que deseja marcar esta doação como concluída?',
+        confirmText: 'Sim, concluir',
+        confirmButtonColor: Colors.green,
+        icon: LucideIcons.checkCircle2);
+
+    if (confirmed == true) {
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+      final success =
+          await donationStore.completeDonation(donation.donationToken);
+      if (success && mounted) {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(content: Text('Doação marcada como concluída')),
+        );
+      } else if (mounted) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(content: Text('Erro: ${donationStore.error}')),
+        );
+      }
+    }
+  }
+
+  void _showCancelDialog(DonationModel donation) async {
+    final confirmed = await showCustomDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cancelar Doação'),
-        content: const Text('Tem certeza que deseja cancelar esta doação?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Não'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final scaffoldMessenger = ScaffoldMessenger.of(context);
-              Navigator.pop(context);
-              final success = await donationStore.cancelDonation(donation.donationToken);
-              if (success && mounted) {
-                scaffoldMessenger.showSnackBar(
-                  const SnackBar(content: Text('Doação cancelada com sucesso')),
-                );
-              }
-            },
-            child: const Text('Sim'),
-          ),
-        ],
-      ),
+      title: 'Cancelar Doação',
+      content: 'Tem certeza que deseja cancelar esta doação?',
+      confirmText: 'Sim, cancelar',
+      confirmButtonColor: Colors.red,
+      icon: LucideIcons.trash2,
     );
+
+    if (confirmed == true) {
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+      final success = await donationStore.cancelDonation(donation.donationToken);
+      if (success && mounted) {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(content: Text('Doação cancelada com sucesso')),
+        );
+      } else if (mounted) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(content: Text('Erro: ${donationStore.error}')),
+        );
+      }
+    }
   }
 
   @override
@@ -263,23 +282,35 @@ class _HistoryPageState extends State<HistoryPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Agendado: ${donation.donationDate.day}/${donation.donationDate.month}/${donation.donationDate.year}",
-                      style: textTheme.labelSmall,
+                child: InkWell(
+                  onTap: () {
+                    if (donation.status == 'scheduled' ||
+                        donation.status == 'confirmed') {
+                      _addDonationToCalendar(donation);
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Agendado: ${donation.donationDate.day}/${donation.donationDate.month}/${donation.donationDate.year}",
+                          style: textTheme.labelSmall,
+                        ),
+                        Text(
+                          "Horário: ${donation.donationTime}",
+                          style: textTheme.labelSmall,
+                        ),
+                        if (donation.status.toLowerCase() == 'completed')
+                          Text(
+                            "Realizado: ${donation.donationDate.day}/${donation.donationDate.month}/${donation.donationDate.year}",
+                            style: textTheme.labelSmall,
+                          ),
+                      ],
                     ),
-                    Text(
-                      "Horário: ${donation.donationTime}",
-                      style: textTheme.labelSmall,
-                    ),
-                    if (donation.status.toLowerCase() == 'completed')
-                      Text(
-                        "Realizado: ${donation.donationDate.day}/${donation.donationDate.month}/${donation.donationDate.year}",
-                        style: textTheme.labelSmall,
-                      ),
-                  ],
+                  ),
                 ),
               ),
               const SizedBox(width: 21),
