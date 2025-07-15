@@ -1,6 +1,7 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import 'package:vitalink/services/models/nearby_model.dart';
 import 'package:vitalink/services/stores/blood_center_store.dart';
 import 'package:vitalink/services/stores/donation_store.dart';
@@ -19,14 +20,18 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vitalink/src/pages/schedule_donation.dart';
 
-//TODO: arrumar o histórico
 //TODO: arrumar o logout; o estado do user_header não é atualizado corretamente, tem q colocar o hot restart
-//o token está se perdendo ao ultimizar o hot restar
 
 
-//TODO: estado do card e do "próxima doação" quando for concluida/finalizado
-//(hemocentro vai deletar ou atualizar como confirmado dependendo da presença do usuário),
-//tem diferença mas n me atentei e mexi sem commitar. Isso n tem nem no backend
+//TODO: confirmar se as notificações das notícias estão funcionando
+//TODO: card amarelo, ficou estranho no modo escuro
+//TODO: arrumar showDialog, estão feias
+//TODO: integrar foto de perfil para o usuário
+//TODO: integrar botão de enviar email para o hemocentro
+//TODO: integrar datas com calendário google
+
+
+
 
 class HomePage extends StatefulWidget {
   final NearbyStore nearbyStore;
@@ -97,11 +102,38 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildNextDonationCard() {
-    return ValueListenableBuilder(
-      valueListenable: widget.donationStore.nextDonation,
-      builder: (context, nextDonation, child) {
+    return Consumer<DonationStore>(
+      builder: (context, store, child) {
+        final nextDonation = store.nextDonation;
         final textTheme = Theme.of(context).textTheme;
 
+        if (store.isLoading && nextDonation == null) {
+          // Skeleton loader for initial loading
+          return Skeletonizer(
+            enabled: true,
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width / 1.15,
+              height: MediaQuery.of(context).size.height / 3.75,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Próxima Doação', style: textTheme.headlineSmall!.copyWith(fontSize: 20)),
+                  const SizedBox(height: 20),
+                  const ListTile(
+                    leading: Icon(Icons.calendar_month),
+                    title: Text('Data: dd/mm/yyyy - hh:mm'),
+                  ),
+                  const ListTile(
+                    leading: Icon(Icons.location_on_outlined),
+                    title: Text('Hemocentro: Carregando...'),
+                    subtitle: Text('Status: Carregando...'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        
         if (nextDonation == null) {
           return SizedBox(
             width: MediaQuery.of(context).size.width / 1.15,
@@ -188,9 +220,9 @@ class _HomePageState extends State<HomePage> {
                           style: textTheme.headlineSmall,
                         ),
                         Text(
-                          "Status: ${_getStatusText(nextDonation.status)}",
+                          "Status: ${nextDonation.statusDisplayName}",
                           style: textTheme.headlineSmall?.copyWith(
-                            color: _getStatusColor(nextDonation.status),
+                            color: nextDonation.statusColor,
                           ),
                         ),
                       ],
@@ -234,36 +266,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  String _getStatusText(String status) {
-    switch (status) {
-      case 'scheduled':
-        return 'Agendada';
-      case 'confirmed':
-        return 'Confirmada';
-      case 'completed':
-        return 'Concluída';
-      case 'cancelled':
-        return 'Cancelada';
-      default:
-        return status;
-    }
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'scheduled':
-        return Colors.blue;
-      case 'confirmed':
-        return Colors.green;
-      case 'completed':
-        return Colors.green.shade700;
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
   Future<void> _showCancelDonationDialog(String token) async {
     final result = await showDialog<bool>(
       context: context,
@@ -291,7 +293,7 @@ class _HomePageState extends State<HomePage> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: ${widget.donationStore.error.value}')),
+          SnackBar(content: Text('Erro: ${widget.donationStore.error}')),
         );
       }
     }
