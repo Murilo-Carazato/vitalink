@@ -3,6 +3,7 @@ import 'package:vitalink/services/helpers/exceptions.dart';
 import 'package:vitalink/services/helpers/http_client.dart';
 import 'package:vitalink/services/models/user_model.dart';
 import 'package:vitalink/services/repositories/user_repository.dart';
+import 'package:vitalink/services/stores/auth_store.dart'; // Added import for AuthStore
 
 class UserStore with ChangeNotifier {
   final IUserRepository repository;
@@ -83,21 +84,11 @@ class UserStore with ChangeNotifier {
     return null;
   }
 
-  Future<void> logout() async {
+  Future<void> logout(AuthStore authStore) async {
     isLoading.value = true;
     try {
-      if (state.value.isNotEmpty) {
-        final currentUser = state.value.first;
-        // Limpa o token do usuário atual, mas mantém os outros dados
-        final loggedOutUser = currentUser.copyWith(token: '');
-        await repository.updateUser(loggedOutUser);
-      }
-
-      // Limpar token global do cliente HTTP
-      MyHttpClient.setToken('');
-
-      // Zera o estado local para forçar o login na próxima vez
-      state.value = [];
+      await authStore.signOut(); // Usa o método centralizado do AuthStore
+      state.value = []; // Limpa o estado local
     } catch (e) {
       erro.value = e.toString();
     } finally {
