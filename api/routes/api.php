@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BloodCenterController;
 use App\Http\Controllers\NewsController;
@@ -27,6 +29,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 Route::post('/user/login', [AuthController::class, 'store'])->name('user.login');
 Route::post('/user/register', [UserController::class, 'store'])->name('user.store');
+Route::post('/auth/google', [AuthController::class, 'handleGoogleCallback'])->name('google.login');
+Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
+Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.update');
+
 
 // ------------------ CRUD BLOOD CENTER  ------------------
 Route::get('/blood-center', [BloodCenterController::class, 'index'])->name('blood-center.index');
