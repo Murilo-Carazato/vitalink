@@ -30,10 +30,29 @@ class AuthRepository {
       body: req.toMap(),
     );
 
-      print(res.body);
+    print(res.body);
 
-    if (res.statusCode == 200 || res.statusCode == 201)
+    if (res.statusCode >= 200 && res.statusCode < 300) {
       return jsonDecode(res.body);
+    }
+
+    if (res.statusCode == 422) {
+      try {
+        final errorBody = jsonDecode(res.body);
+        if (errorBody.containsKey('errors')) {
+          final errors = errorBody['errors'] as Map<String, dynamic>;
+          // Pega a primeira mensagem de erro da lista de erros.
+          final firstErrorMessage =
+              (errors.values.first as List).first as String;
+          throw Exception(firstErrorMessage);
+        }
+        throw Exception('Os dados fornecidos são inválidos.');
+      } catch (e) {
+        // Se o erro não for o esperado, relança-o
+        throw Exception(e.toString().replaceAll('Exception: ', ''));
+      }
+    }
+
     throw Exception('Registro falhou: ${res.reasonPhrase}');
   }
 }
