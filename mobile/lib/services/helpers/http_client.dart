@@ -13,6 +13,10 @@ class MyHttpClient {
     _token = newToken;
   }
 
+  static String? getToken() {
+    return _token;
+  }
+
   static Map<String, String> getHeaders({String? token, bool isJson = false}) {
     final headers = {
       HttpHeaders.acceptHeader: 'application/json',
@@ -58,6 +62,19 @@ class MyHttpClient {
     Map<String, dynamic>? body,
   }) async {
     final response = await http.post(
+      Uri.parse(baseUrl + url),
+      headers: headers,
+      body: json.encode(body),
+    );
+    return response;
+  }
+
+  static Future<http.Response> putString({
+    required String url,
+    required Map<String, String> headers,
+    Map<String, dynamic>? body,
+  }) async {
+    final response = await http.put(
       Uri.parse(baseUrl + url),
       headers: headers,
       body: json.encode(body),
