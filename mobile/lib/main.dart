@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:vitalink/services/helpers/database_helper.dart';
+import 'package:vitalink/services/helpers/local_notification_helper.dart';
 import 'package:vitalink/services/models/user_model.dart';
 import 'package:vitalink/services/repositories/api/auth_repository.dart';
 import 'package:vitalink/services/repositories/api/blood_center_repository.dart';
@@ -23,6 +24,17 @@ void main() async {
   await Firebase.initializeApp();
   await FirebaseMessaging.instance.requestPermission();
   
+  await LocalNotificationHelper.initialize();
+
+  // Handler para quando o app está em primeiro plano
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    print('Got a message whilst in the foreground!');
+    print('Message data: ${message.data}');
+    print('Message notification: ${message.notification}');
+
+    LocalNotificationHelper.showNotification(message);
+  });
+
   final settingsController = SettingsController(SettingsService());
   await settingsController.loadSettings();
   //App é mantido no modo retrato
@@ -40,20 +52,13 @@ void main() async {
     userRepository: userRepository,
   );
 
-  //Captura se existe usuário salvo no banco de dados
-  List<UserModel> users = await userRepository.getUser();
+  // Instancia e carrega o UserStore
   UserStore userStore = UserStore(repository: userRepository);
-  if (users.isEmpty) {
-    //Cria usuário padrão se não houver dados salvos
-    userStore.state.value = [
-      UserModel(id: 1, name: 'Usuário', birthDate: '25/05/2002', bloodType: 'O-', hasMicropigmentation: false, hasPermanentMakeup: false, hasTattoo: false, viewedTutorial: false)
-    ];
-    await userRepository.createUser(userStore.state.value.first);
-  } else {
-    userStore.state.value = users;
-  }
+  await userStore.loadCurrentUser();
+
   final bloodCenterStore = BloodCenterStore(repository: BloodRepository());
-  final donationStore = DonationStore(repository: DonationRepository(), userStore: userStore);
+  final donationStore =
+      DonationStore(repository: DonationRepository(), userStore: userStore);
 
   runApp(MultiProvider(
     providers: [
