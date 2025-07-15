@@ -89,7 +89,7 @@ class DonationController extends Controller
             return response()->json(['message' => 'Doação não encontrada'], Response::HTTP_NOT_FOUND);
         }
 
-        $this->donationService->cancelDonation($donation);
+        $this->donationService->cancelDonation($donation, $request->user());
 
         return response()->json([
             'message' => 'Doação cancelada com sucesso',
@@ -103,15 +103,25 @@ class DonationController extends Controller
         return response()->json(['data' => $stats], Response::HTTP_OK);
     }
 
-    public function generateToken()
-    {
-        $token = $this->donationService->generateToken();
-        return response()->json(['token' => $token]);
-    }
-
     public function getDonationsForUser(Request $request)
     {
         $donations = $this->donationService->getDonationsForUser($request->user());
         return response()->json(['data' => $donations]);
+    }
+
+    public function complete(Request $request, string $token)
+    {
+        $donation = $this->donationService->getDonationByToken($token);
+
+        if (!$donation) {
+            return response()->json(['message' => 'Doação não encontrada'], Response::HTTP_NOT_FOUND);
+        }
+
+        $completedDonation = $this->donationService->completeDonation($donation, $request->user());
+
+        return response()->json([
+            'message' => 'Doação marcada como concluída',
+            'data' => $completedDonation->load('bloodcenter')
+        ], Response::HTTP_OK);
     }
 }
