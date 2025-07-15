@@ -16,14 +16,14 @@ class UserController extends Controller
     public function __construct(UserService $userService)
     {
         $this->userService = $userService;
+        $this->middleware('can:viewAny,' . User::class)->only('index');
+        $this->middleware('can:view,user')->only('show');
+        $this->middleware('can:update,user')->only('update');
+        $this->middleware('can:delete,user')->only('destroy');
     }
 
-    public function index(Request $request)
+    public function index()
     {
-        if ($request->user()->isadmin != 'superadmin') {
-            return response()->json(['message' => 'Unathorized request'], Response::HTTP_UNAUTHORIZED);
-        }
-
         $users = $this->userService->getAllUsers();
         return response()->json(['users' => $users], Response::HTTP_OK);
     }
@@ -38,33 +38,13 @@ class UserController extends Controller
         ], Response::HTTP_CREATED);
     }
 
-    public function show(string $id, Request $request)
+    public function show(User $user)
     {
-        $user = $this->userService->getUserById($id);
-
-        if (!$user) {
-            return response()->json(['message' => 'User not found'], Response::HTTP_NOT_FOUND);
-        }
-
-        if ($request->user()->isadmin != 'superadmin' && $request->user()->id != $id) {
-            return response()->json(['message' => 'Unathorized request'], Response::HTTP_UNAUTHORIZED);
-        }
-
         return response()->json(['data' => $user], Response::HTTP_OK);
     }
 
-    public function update(UserUpdateRequest $request, string $id)
+    public function update(UserUpdateRequest $request, User $user)
     {
-        $user = $this->userService->getUserById($id);
-
-        if (!$user) {
-            return response()->json(['message' => 'User not found'], Response::HTTP_NOT_FOUND);
-        }
-
-        if ($request->user()->isadmin != 'superadmin') {
-            return response()->json(['message' => 'Unauthorized request'], Response::HTTP_UNAUTHORIZED);
-        }
-
         $updatedUser = $this->userService->updateUser($user, $request->validated());
 
         return response()->json(
@@ -76,18 +56,8 @@ class UserController extends Controller
         );
     }
 
-    public function destroy(Request $request, string $id)
+    public function destroy(User $user)
     {
-        $user = $this->userService->getUserById($id);
-
-        if (!$user) {
-            return response()->json(['message' => 'User not found'], Response::HTTP_NOT_FOUND);
-        }
-
-        if ($request->user()->isadmin != 'superadmin') {
-            return response()->json(['message' => 'Unauthorized request'], Response::HTTP_UNAUTHORIZED);
-        }
-
         $this->userService->deleteUser($user);
 
         return response()->json(['message' => 'User deleted'], Response::HTTP_OK);
