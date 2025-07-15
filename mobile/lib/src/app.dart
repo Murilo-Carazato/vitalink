@@ -15,8 +15,10 @@ import 'package:vitalink/src/pages/home.dart';
 import 'package:vitalink/src/pages/history.dart';
 import 'package:vitalink/src/pages/introduction_screen.dart';
 import 'package:vitalink/src/pages/auth.dart';
+import 'package:vitalink/src/pages/forgot_password_page.dart';
 import 'package:vitalink/src/pages/news.dart';
 import 'package:vitalink/src/pages/profile.dart';
+import 'package:vitalink/src/pages/reset_password_page.dart';
 import 'package:vitalink/src/pages/schedule_donation.dart';
 import 'package:vitalink/src/settings/settings_view.dart';
 import 'package:vitalink/styles.dart';
@@ -443,36 +445,34 @@ class _MyAppState extends State<MyApp> {
                     return MyTab(userStore: widget.userStore);
                   case AuthScreen.routeName:
                     return const AuthScreen();
+                  case ResetPasswordPage.routeName:
+                    final args = routeSettings.arguments as Map<String, dynamic>?;
+                    final email = args?['email'] as String?;
+                    if (email == null) {
+                      // Se não houver e-mail, redirecione de volta para a página de solicitação
+                      return const ForgotPasswordPage();
+                    }
+                    return ResetPasswordPage(email: email);
+                  case ForgotPasswordPage.routeName:
+                    return const ForgotPasswordPage();
                   case BloodCenterDetailsPage.routeName:
-                    final args = routeSettings.arguments;
-                    if (args is Map<String, dynamic>) {
-                      return BloodCenterDetailsPage(
-                        bloodCenterId: args['bloodCenterId'],
-                      );
-                    } else {
-                      // Show the type and value of the arguments for easier debugging
-                      return Scaffold(
-                        body: Center(
-                          child: Text(
-                            'Invalid arguments for BloodCenterDetailsPage:\nType: \\${args?.runtimeType}\nValue: \\${args?.toString()}',
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      );
-                    }
+                    final args =
+                        routeSettings.arguments as Map<String, dynamic>;
+                    return BloodCenterDetailsPage(
+                      bloodCenterId: args['bloodCenterId'],
+                    );
                   default:
-                    //Verifica se usuário já visualizou tela de introdução
-                    if (!widget.userStore.state.value.first.viewedTutorial) {
-                      return MyIntroductionScreen(userStore: widget.userStore);
-                    }
-
-                    // Verifica se o usuário já está logado (tem token)
-                    final user = widget.userStore.state.value.first;
-                    if (user.token != null && user.token!.isNotEmpty) {
-                      // Se tem token, vai direto para a tela principal
+                    // Verifica de forma segura se a lista de usuários não está vazia
+                    // e se o usuário tem um token.
+                    if (widget.userStore.state.value.isNotEmpty &&
+                        widget.userStore.state.value.first.token != null &&
+                        widget.userStore.state.value.first.token!.isNotEmpty) {
+                      final user = widget.userStore.state.value.first;
+                      if (!user.viewedTutorial) {
+                        return MyIntroductionScreen(userStore: widget.userStore);
+                      }
                       return MyTab(userStore: widget.userStore);
                     } else {
-                      // Se não tem token, vai para a tela de login
                       return const AuthScreen();
                     }
                 }
