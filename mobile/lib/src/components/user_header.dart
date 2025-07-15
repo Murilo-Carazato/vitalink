@@ -3,7 +3,6 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:vitalink/services/helpers/my_dates_formatter.dart';
 import 'package:vitalink/services/helpers/user_name_initial.dart';
-import 'package:vitalink/services/models/user_model.dart';
 import 'package:vitalink/services/stores/user_store.dart';
 import 'package:vitalink/styles.dart';
 import 'dart:io';
