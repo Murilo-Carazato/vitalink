@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\BloodType;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class DonationStoreRequest extends FormRequest
 {
@@ -14,8 +16,7 @@ class DonationStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'donation_token' => ['required', 'string', 'size:32', 'unique:donations'],
-            'blood_type' => ['required', 'in:positiveA,negativeA,positiveB,negativeB,negativeAB,positiveAB,negativeO,positiveO'],
+            'blood_type' => ['required', Rule::enum(BloodType::class)],
             'donation_date' => ['required', 'date', 'after:today'],
             'donation_time' => ['nullable', 'date_format:H:i'],
             'bloodcenter_id' => ['required', 'exists:bloodcenters,id'],
