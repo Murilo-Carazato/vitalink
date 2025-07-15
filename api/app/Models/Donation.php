@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\BloodType;
+use App\Enums\DonationStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -33,7 +35,20 @@ class Donation extends Model
         'reminder_sent_at' => 'datetime',
         'is_first_time_donor' => 'boolean',
         'reminder_sent' => 'boolean',
+        'blood_type' => BloodType::class,
+        'status' => DonationStatus::class,
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($donation) {
+            if (empty($donation->donation_token)) {
+                $donation->donation_token = self::generateDonationToken();
+            }
+        });
+    }
 
     // Relacionamento com hemocentro
     public function bloodcenter()
@@ -72,13 +87,13 @@ class Donation extends Model
     // Verifica se a doação pode ser editada
     public function canBeEdited(): bool
     {
-        return in_array($this->status, ['scheduled', 'confirmed']);
+        return in_array($this->status, [DonationStatus::SCHEDULED, DonationStatus::CONFIRMED]);
     }
 
     // Verifica se a doação pode ser cancelada
     public function canBeCancelled(): bool
     {
-        return in_array($this->status, ['scheduled', 'confirmed']) && 
+        return in_array($this->status, [DonationStatus::SCHEDULED, DonationStatus::CONFIRMED]) &&
                $this->donation_date->isFuture();
     }
 }
