@@ -27,7 +27,9 @@ class _BloodCenterDetailsPageState extends State<BloodCenterDetailsPage> {
   void initState() {
     super.initState();
     _bloodCenterStore = Provider.of<BloodCenterStore>(context, listen: false);
-    _loadBloodCenterDetails();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadBloodCenterDetails();
+    });
   }
   
   Future<void> _loadBloodCenterDetails() async {
@@ -147,7 +149,9 @@ class _BloodCenterDetailsPageState extends State<BloodCenterDetailsPage> {
                     Navigator.pushNamed(
                       context,
                       ScheduleDonationPage.routeName,
-                      arguments: bloodCenter.id,
+                      arguments: {
+                        'preSelectedBloodcenterId': bloodCenter.id,
+                      },
                     );
                   },
                   label: const Text('Agendar Doação'),
