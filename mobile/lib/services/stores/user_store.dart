@@ -12,20 +12,24 @@ class UserStore with ChangeNotifier {
   ValueNotifier<bool> isLoading = ValueNotifier<bool>(false);
   ValueNotifier<String> erro = ValueNotifier<String>('');
 
-  Future getUser() async {
+  Future<bool> loadCurrentUser() async {
     isLoading.value = true;
     try {
-      final result = await repository.getUser();
-      state.value = result;
+      final result =
+          await (repository as UserRepository).getAuthenticatedUser();
 
-      // Restaura o token do usuário para o cliente HTTP
-      if (result.isNotEmpty &&
-          result.first.token != null &&
-          result.first.token!.isNotEmpty) {
-        MyHttpClient.setToken(result.first.token!);
+      if (result != null) {
+        state.value = [result];
+        MyHttpClient.setToken(result.token!);
+        return true;
+      } else {
+        state.value = [];
+        MyHttpClient.setToken('');
+        return false;
       }
     } on NotFoundException catch (e) {
       erro.value = e.message;
+      return false;
     } finally {
       isLoading.value = false;
       notifyListeners();
@@ -48,9 +52,20 @@ class UserStore with ChangeNotifier {
   Future updateUser({required UserModel newUser}) async {
     isLoading.value = true;
     try {
+      // 1. Atualiza o usuário no banco de dados local.
       await repository.updateUser(newUser);
-      final result = await repository.getUser();
-      state.value = result;
+
+      // 2. Encontra o usuário no estado atual e o atualiza diretamente.
+      // Isso é mais seguro do que recarregar tudo do banco.
+      final index = state.value.indexWhere((user) => user.id == newUser.id);
+      if (index != -1) {
+        final updatedList = List<UserModel>.from(state.value);
+        updatedList[index] = newUser;
+        state.value = updatedList;
+      } else {
+        // Fallback: se o usuário não estava no estado, recarrega o usuário atual.
+        await loadCurrentUser();
+      }
     } on NotFoundException catch (e) {
       erro.value = e.message;
     } finally {
@@ -71,21 +86,18 @@ class UserStore with ChangeNotifier {
   Future<void> logout() async {
     isLoading.value = true;
     try {
-      // Obter usuário atual
-      final currentUser = state.value.first;
+      if (state.value.isNotEmpty) {
+        final currentUser = state.value.first;
+        // Limpa o token do usuário atual, mas mantém os outros dados
+        final loggedOutUser = currentUser.copyWith(token: '');
+        await repository.updateUser(loggedOutUser);
+      }
 
-      // Criar cópia sem token
-      final loggedOutUser = currentUser.copyWith(token: '');
-
-      // Atualizar no banco
-      await repository.updateUser(loggedOutUser);
-
-      // Limpar token global
+      // Limpar token global do cliente HTTP
       MyHttpClient.setToken('');
 
-      // Recarregar usuário
-      final result = await repository.getUser();
-      state.value = result;
+      // Zera o estado local para forçar o login na próxima vez
+      state.value = [];
     } catch (e) {
       erro.value = e.toString();
     } finally {
