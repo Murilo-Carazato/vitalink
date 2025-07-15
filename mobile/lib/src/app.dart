@@ -484,7 +484,6 @@ class _MyAppState extends State<MyApp> {
     );
   }
 }
-
 class MyTab extends StatefulWidget {
   final UserStore userStore;
   const MyTab({super.key, required this.userStore});
@@ -611,3 +610,4 @@ class _MyNavbarState extends State<MyNavbar> with SingleTickerProviderStateMixin
     );
   }
 }
+
