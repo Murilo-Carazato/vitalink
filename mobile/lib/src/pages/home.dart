@@ -12,24 +12,20 @@ import 'package:vitalink/src/components/card_home_status/status_card_selector.da
 import 'package:vitalink/src/components/location_warning.dart';
 import 'package:vitalink/src/components/user_header.dart';
 import 'package:vitalink/src/pages/blood_center_details.dart';
-
 import 'package:vitalink/src/pages/history.dart';
 import 'package:vitalink/src/pages/news.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vitalink/src/pages/schedule_donation.dart';
+import 'package:add_2_calendar/add_2_calendar.dart';
+import 'package:vitalink/services/models/donation_model.dart';
+import 'package:vitalink/src/components/custom_dialog.dart';
 
 //TODO: arrumar o logout; o estado do user_header não é atualizado corretamente, tem q colocar o hot restart
 
-
 //TODO: confirmar se as notificações das notícias estão funcionando
-//TODO: card amarelo, ficou estranho no modo escuro
-//TODO: arrumar showDialog, estão feias
-//TODO: integrar foto de perfil para o usuário
-//TODO: integrar botão de enviar email para o hemocentro
-//TODO: integrar datas com calendário google
-
+//TODO: implementar esqueci a senha
 
 
 
@@ -94,6 +90,32 @@ class _HomePageState extends State<HomePage> {
     } else {
       throw 'Não foi possível abrir o mapa.';
     }
+  }
+
+  void _addDonationToCalendar(DonationModel donation) {
+    // Parse time string 'HH:mm'
+    final timeParts = donation.donationTime.split(':');
+    final hour = int.parse(timeParts[0]);
+    final minute = int.parse(timeParts[1]);
+
+    final startDate = DateTime(
+      donation.donationDate.year,
+      donation.donationDate.month,
+      donation.donationDate.day,
+      hour,
+      minute,
+    );
+
+    final event = Event(
+      title: 'Doação de Sangue - Vitalink',
+      description:
+          'Doação de sangue agendada no hemocentro ${donation.bloodcenter?.name}. Não se esqueça de levar um documento com foto e se alimentar bem antes!',
+      location: donation.bloodcenter?.address ?? 'Endereço não informado',
+      startDate: startDate,
+      endDate: startDate.add(const Duration(hours: 1)), // Assume 1 hour duration
+      allDay: false,
+    );
+    Add2Calendar.addEvent2Cal(event);
   }
 
   String _formatDate(DateTime date) {
@@ -192,15 +214,22 @@ class _HomePageState extends State<HomePage> {
                 style: textTheme.headlineSmall!.copyWith(fontSize: 20),
               ),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.calendar_month),
-                  const SizedBox(width: 10),
-                  Text(
-                    "Data: ${_formatDate(nextDonation.donationDate)} - ${nextDonation.donationTime}",
-                    style: textTheme.headlineSmall,
+              InkWell(
+                onTap: () => _addDonationToCalendar(nextDonation),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_month),
+                      const SizedBox(width: 10),
+                      Text(
+                        "Data: ${_formatDate(nextDonation.donationDate)} - ${nextDonation.donationTime}",
+                        style: textTheme.headlineSmall,
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
               const SizedBox(height: 10),
               Row(
@@ -253,7 +282,6 @@ class _HomePageState extends State<HomePage> {
                     icon: const Icon(LucideIcons.x),
                     label: const Text('Cancelar'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red.shade50,
                       foregroundColor: Colors.red.shade700,
                     ),
                   ),
@@ -267,34 +295,27 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _showCancelDonationDialog(String token) async {
-    final result = await showDialog<bool>(
+    final result = await showCustomDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cancelar Doação'),
-        content: const Text('Tem certeza que deseja cancelar esta doação?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Não'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Sim'),
-          ),
-        ],
-      ),
+      title: 'Cancelar Doação',
+      content: 'Tem certeza que deseja cancelar esta doação? Esta ação não pode ser desfeita.',
+      confirmText: 'Sim, Cancelar',
+      confirmButtonColor: Colors.red,
+      icon: LucideIcons.trash2,
     );
 
     if (result == true) {
       final success = await widget.donationStore.cancelDonation(token);
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Doação cancelada com sucesso')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: ${widget.donationStore.error}')),
-        );
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Doação cancelada com sucesso')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro: ${widget.donationStore.error}')),
+          );
+        }
       }
     }
   }
