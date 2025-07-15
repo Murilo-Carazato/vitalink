@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:vitalink/src/components/button_settings.dart';
 import 'package:vitalink/services/stores/donation_store.dart';
 import 'package:vitalink/services/models/donation_model.dart';
@@ -25,6 +26,22 @@ class _HistoryPageState extends State<HistoryPage> {
     _loadDonationHistory();
   }
 
+  Future<void> _openMap(String address) async {
+    final query = Uri.encodeComponent(address);
+    final googleUrl = 'https://www.google.com/maps/search/?api=1&query=$query';
+    final uri = Uri.parse(googleUrl);
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Não foi possível abrir o mapa')),
+        );
+      }
+    }
+  }
+
   void _loadDonationHistory() async {
     await donationStore.fetchDonationHistory();
   }
@@ -33,7 +50,37 @@ class _HistoryPageState extends State<HistoryPage> {
     setState(() {
       selectedFilter = filter;
     });
-    donationStore.fetchDonations(status: filter);
+  }
+
+  void _showCompleteDialog(DonationModel donation) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Concluir Doação'),
+        content: const Text('Tem certeza que deseja marcar esta doação como concluída?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Não'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              Navigator.pop(context);
+              final success =
+                  await donationStore.completeDonation(donation.donationToken);
+              if (success && mounted) {
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(
+                      content: Text('Doação marcada como concluída')),
+                );
+              }
+            },
+            child: const Text('Sim'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showCancelDialog(DonationModel donation) {
@@ -49,42 +96,12 @@ class _HistoryPageState extends State<HistoryPage> {
           ),
           TextButton(
             onPressed: () async {
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
               Navigator.pop(context);
               final success = await donationStore.cancelDonation(donation.donationToken);
               if (success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                scaffoldMessenger.showSnackBar(
                   const SnackBar(content: Text('Doação cancelada com sucesso')),
-                );
-              }
-            },
-            child: const Text('Sim'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showConfirmedDialog(DonationModel donation) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar Doação'),
-        content: const Text('Marcar esta doação como concluída?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Não'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              final success = await donationStore.updateDonation(
-                donation.donationToken,
-                // Aqui você pode adicionar outros campos se necessário
-              );
-              if (success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Doação marcada como concluída')),
                 );
               }
             },
@@ -112,6 +129,16 @@ class _HistoryPageState extends State<HistoryPage> {
       ),
       body: Consumer<DonationStore>(
         builder: (context, store, child) {
+          if (store.isLoading && store.donations.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (store.error.isNotEmpty) {
+            return Center(child: Text('Erro: ${store.error}'));
+          }
+
+          final filteredDonations = store.getFilteredDonations(status: selectedFilter);
+
           return SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
@@ -132,31 +159,12 @@ class _HistoryPageState extends State<HistoryPage> {
                   ],
                 ),
                 const SizedBox(height: 44),
-                
-                // Loading indicator
-                if (store.isLoading.value)
-                  const Center(child: CircularProgressIndicator())
-                
-                // Error message
-                else if (store.error.value.isNotEmpty)
-                  Center(
-                    child: Column(
-                      children: [
-                        Text(
-                          'Erro: ${store.error.value}',
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _loadDonationHistory,
-                          child: const Text('Tentar novamente'),
-                        ),
-                      ],
-                    ),
-                  )
-                
-                // Donations list
-                else if (store.donations.value.isEmpty)
+                if (store.isLoading && store.donations.isNotEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 16.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                if (filteredDonations.isEmpty && !store.isLoading)
                   const Center(
                     child: Column(
                       children: [
@@ -169,14 +177,13 @@ class _HistoryPageState extends State<HistoryPage> {
                       ],
                     ),
                   )
-                
                 else
                   ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: store.getFilteredDonations(status: selectedFilter).length,
+                    itemCount: filteredDonations.length,
                     itemBuilder: (context, index) {
-                      final donation = store.getFilteredDonations(status: selectedFilter)[index];
+                      final donation = filteredDonations[index];
                       return _buildDonationCard(donation, textTheme);
                     },
                   ),
@@ -219,7 +226,6 @@ class _HistoryPageState extends State<HistoryPage> {
     final statusColor = donation.statusColor;
     final statusText = donation.statusDisplayName;
     final statusIcon = donation.statusIcon;
-    final isPending = donation.status.toLowerCase() == 'scheduled';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -305,31 +311,35 @@ class _HistoryPageState extends State<HistoryPage> {
           const SizedBox(height: 20),
           
           // Location info
-          Row(
-            children: [
-              const Icon(Icons.location_on_outlined, size: 25),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Hemocentro ID: ${donation.bloodcenterId}",
-                      style: textTheme.labelSmall,
-                    ),
-                    if (donation.medicalNotes != null && donation.medicalNotes!.isNotEmpty)
+          InkWell(
+            onTap: () => _openMap(donation.bloodcenter!.address),
+            borderRadius: BorderRadius.circular(8),
+            child: Row(
+              children: [
+                const Icon(Icons.location_on_outlined, size: 25),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        "Observações: ${donation.medicalNotes}",
+                        "Endereço: ${donation.bloodcenter!.address}",
                         style: textTheme.labelSmall,
                       ),
-                  ],
+                      if (donation.medicalNotes != null && donation.medicalNotes!.isNotEmpty)
+                        Text(
+                          "Observações: ${donation.medicalNotes}",
+                          style: textTheme.labelSmall,
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           
           // Action buttons for pending donations
-          if (isPending) ...[
+          if (donation.canBeCompleted) ...[
             const SizedBox(height: 20),
             const Divider(),
             const SizedBox(height: 20),
@@ -357,7 +367,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   height: 52,
                   width: 140,
                   child: TextButton(
-                    onPressed: () => _showConfirmedDialog(donation),
+                    onPressed: () => _showCompleteDialog(donation),
                     style: TextButton.styleFrom(
                       backgroundColor: Colors.transparent,
                     ),
