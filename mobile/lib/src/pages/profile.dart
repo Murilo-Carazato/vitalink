@@ -9,6 +9,11 @@ import 'package:vitalink/src/components/user_header.dart';
 import 'package:vitalink/styles.dart';
 import 'package:intl/intl.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
+import 'dart:io';
+import 'package:vitalink/src/components/custom_dialog.dart';
 
 class ProfilePage extends StatefulWidget {
   final UserStore userStore;
@@ -52,6 +57,52 @@ class _ProfilePageState extends State<ProfilePage> {
     hasMicropigmentation = user.hasMicropigmentation;
     hasPermanentMakeup = user.hasPermanentMakeup;
     super.initState();
+  }
+
+  Future<void> _showImageSourceActionSheet() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: <Widget>[
+            ListTile(
+              leading: const Icon(LucideIcons.camera),
+              title: const Text('Tirar foto'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(LucideIcons.image),
+              title: const Text('Escolher da galeria'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: source);
+
+    if (pickedFile != null) {
+      final appDir = await getApplicationDocumentsDirectory();
+      final fileName = p.basename(pickedFile.path);
+      final savedImage =
+          await File(pickedFile.path).copy('${appDir.path}/$fileName');
+
+      // Salva o caminho da imagem no banco de dados
+      var currentUser = widget.userStore.state.value.first;
+      var updatedUser =
+          currentUser.copyWith(profilePhotoPath: savedImage.path);
+      await widget.userStore.updateUser(newUser: updatedUser);
+    }
   }
 
   void subscribeToBloodTypeTopic(String bloodType) {
@@ -118,13 +169,35 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AnimatedBuilder(
-              animation: Listenable.merge([
-                widget.userStore.state,
-                widget.userStore.isLoading,
-                widget.userStore.erro
-              ]),
-              builder: (context, child) => UserHeader(user: widget.userStore),
+            Center(
+              child: AnimatedBuilder(
+                animation: widget.userStore.state,
+                builder: (context, child) {
+                  if (widget.userStore.state.value.isEmpty) {
+                    // Placeholder to prevent layout jumps
+                    return const SizedBox(height: 120, width: 100);
+                  }
+                  final user = widget.userStore.state.value.first;
+                  final photoPath = user.profilePhotoPath;
+                  return Column(
+                    children: [
+                      GestureDetector(
+                        onTap: _showImageSourceActionSheet,
+                        child: CircleAvatar(
+                          radius: 50,
+                          backgroundImage:
+                              photoPath != null ? FileImage(File(photoPath)) : null,
+                          child: photoPath == null
+                              ? const Icon(LucideIcons.user, size: 50)
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(user.name, style: textTheme.titleLarge),
+                    ],
+                  );
+                },
+              ),
             ),
             Padding(
                 padding: EdgeInsets.symmetric(
@@ -263,6 +336,8 @@ class _ProfilePageState extends State<ProfilePage> {
                           viewedTutorial: true,
                           email: instantiatedUser.email, // <-- mantenha o email
                           token: instantiatedUser.token, // <-- mantenha o token
+                          profilePhotoPath: instantiatedUser
+                              .profilePhotoPath, // <-- adicione o caminho da foto
                         );
                         if (instantiatedUser == newUser) {
                           ScaffoldMessenger.of(context).hideCurrentSnackBar(
@@ -302,23 +377,13 @@ class _ProfilePageState extends State<ProfilePage> {
                   TextButton.icon(
                     onPressed: () async {
                       // Confirmação
-                      final confirmed = await showDialog<bool>(
+                      final confirmed = await showCustomDialog(
                         context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Sair'),
-                          content:
-                              const Text('Deseja realmente sair da sua conta?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              child: const Text('Cancelar'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(true),
-                              child: const Text('Sair'),
-                            ),
-                          ],
-                        ),
+                        title: 'Sair da Conta',
+                        content: 'Deseja realmente sair da sua conta?',
+                        confirmText: 'Sair',
+                        confirmButtonColor: Colors.red,
+                        icon: LucideIcons.logOut,
                       );
 
                       if (confirmed == true) {
