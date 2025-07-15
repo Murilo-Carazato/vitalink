@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:vitalink/services/helpers/my_dates_formatter.dart';
 import 'package:vitalink/services/helpers/user_name_initial.dart';
 import 'package:vitalink/services/models/user_model.dart';
 import 'package:vitalink/services/stores/user_store.dart';
 import 'package:vitalink/styles.dart';
+import 'dart:io';
 
 class UserHeader extends StatelessWidget {
   final UserStore user;
@@ -12,43 +14,58 @@ class UserHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var textTheme = Theme.of(context).textTheme;
+    return AnimatedBuilder(
+      animation: user.state,
+      builder: (context, child) {
+        if (user.isLoading.value || user.state.value.isEmpty) {
+          return const Skeletonizer(
+            enabled: true,
+            child: ListTile(
+              leading: CircleAvatar(radius: 25),
+              title: Text('Carregando...'),
+              subtitle: Text('...'),
+            ),
+          );
+        }
 
-    // OUVE o ValueNotifier e reconstrói quando mudar
-    return ValueListenableBuilder<List<UserModel>>(
-      valueListenable: user.state,
-      builder: (context, users, _) {
-        final localUser = users.first;
-        final userAge = MyDates(birthDate: localUser.birthDate);
-        final userInitial = UserNameInitial(localUser.name).captureInitials;
+        var instantiatedUser = user.state.value.first;
+        final photoPath = instantiatedUser.profilePhotoPath;
 
-        return Flex(
-          direction: Axis.horizontal,
+        return Row(
           children: [
-            const SizedBox(height: 10),
             CircleAvatar(
-              backgroundColor:
-                  Theme.of(context).appBarTheme.backgroundColor!.withRed(75),
-              radius: 30,
-              child: Text(userInitial),
+              radius: 25,
+              backgroundImage:
+                  photoPath != null ? FileImage(File(photoPath)) : null,
+              child: photoPath == null
+                  ? Text(UserNameInitial(instantiatedUser.name).captureInitials,
+                      style: const TextStyle(
+                          fontSize: 22, fontWeight: FontWeight.bold))
+                  : null,
             ),
-            const SizedBox(width: 17),
-            SizedBox(
-              width: (MediaQuery.sizeOf(context).width * 0.5992) - 20,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(localUser.name, style: textTheme.bodyMedium),
-                  Text('${userAge.calcularIdade} anos',
-                      style: textTheme.bodySmall),
-                ],
-              ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  instantiatedUser.name,
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineSmall!
+                      .copyWith(fontSize: 22),
+                ),
+                Text(
+                  '${MyDates(birthDate: instantiatedUser.birthDate!).calcularIdade} anos',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
             ),
+            const Spacer(), // Empurra o conteúdo para a direita
             Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(LucideIcons.droplet, color: Styles.primary),
-                Text(localUser.bloodType ?? '', style: textTheme.bodyMedium),
+                Text(instantiatedUser.bloodType ?? '',
+                    style: Theme.of(context).textTheme.bodyMedium),
               ],
             ),
           ],
