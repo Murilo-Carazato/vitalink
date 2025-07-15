@@ -12,10 +12,15 @@ use Symfony\Component\HttpFoundation\Response;
 
 class BloodCenterController extends Controller
 {
+    public function __construct()
+    {
+        $this->authorizeResource(BloodCenter::class, 'blood_center');
+    }
+
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index()
     {
         $query = PaginateAndFilter::applyFilters(BloodCenter::class,'name');
         return response()->json(['data'=>PaginateAndFilter::response($query)]); 
@@ -26,9 +31,6 @@ class BloodCenterController extends Controller
      */
     public function store(BloodCenterRequest $request)
     {
-        if ($request->user()->isadmin != 'superadmin') {
-            return response()->json(['message' => 'Unauthorized access'], Response::HTTP_UNAUTHORIZED);
-        }
         $bloodcenter = BloodCenter::create([
             'name' => $request->name,
             'address' => $request->address,
@@ -50,40 +52,21 @@ class BloodCenterController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(BloodCenter $blood_center)
     {
-        if (!$bloodcenter = BloodCenter::find($id)) {
-            return response()->json(['message' => 'Blood center not found'], Response::HTTP_NOT_FOUND);
-        }
-
-        return response()->json(['data' => $bloodcenter], Response::HTTP_OK);
+        return response()->json(['data' => $blood_center], Response::HTTP_OK);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(BloodCenterUpdateRequest $request, string $id)
+    public function update(BloodCenterUpdateRequest $request, BloodCenter $blood_center)
     {
-
-        if (!$bloodcenter = BloodCenter::find($id)) {
-            return response()->json(['message' => 'Blood center not found'], Response::HTTP_NOT_FOUND);
-        }
-
-        if (!$request->user()->bloodcenter_id == $id && $request->user()->isadmin != 'superadmin') {
-            return response()->json(['message' => 'Unauthorized access'], Response::HTTP_UNAUTHORIZED);
-        }
-
-        $bloodcenter->update([
-            'name' => $request->name ?: $bloodcenter->name,
-            'address' => $request->address ?: $bloodcenter->address,
-            'phone_number' => $request->phone_number ?: $bloodcenter->phone_number,
-            'email' => $request->email ?: $bloodcenter->email,
-            'site' => $request->site ?: $bloodcenter->site,
-        ]);
+        $blood_center->update($request->validated());
         return response()->json(
             [
                 'message' => 'bloodcenter updated',
-                'data' => $bloodcenter
+                'data' => $blood_center
             ],
             Response::HTTP_OK
         );
@@ -92,23 +75,17 @@ class BloodCenterController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Request $request, string $id)
+    public function destroy(BloodCenter $blood_center)
     {
-        if (!$bloodcenter = BloodCenter::find($id)) {
-            return response()->json(['message' => 'Blood center not found'], Response::HTTP_NOT_FOUND);
-        }
-        if ($request->user()->isadmin != 'superadmin') {
-            return response()->json(['message' => 'Unauthorized access'], Response::HTTP_UNAUTHORIZED);
-        }
-        $user = User::where('bloodcenter_id', $id)->first();
+        $user = User::where('bloodcenter_id', $blood_center->id)->first();
         if (!$user) {
-            $bloodcenter->delete();
+            $blood_center->delete();
             return response()->json(['message' => 'Blood center deleted'], Response::HTTP_OK);
         }
 
         $user->news()->delete();
         $user->delete();
-        $bloodcenter->delete();
+        $blood_center->delete();
         return response()->json(['message' => 'Blood center deleted'], Response::HTTP_OK);
     }
 }
