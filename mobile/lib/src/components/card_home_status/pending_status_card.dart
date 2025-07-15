@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:vitalink/services/models/donation_model.dart';
-import 'package:vitalink/styles.dart';
 
 class PendingStatusCard extends StatelessWidget {
   final DonationModel? donation;
