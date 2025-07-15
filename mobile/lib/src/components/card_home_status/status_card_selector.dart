@@ -8,21 +8,18 @@ class DonationStatusCardSelector extends StatelessWidget {
   final DonationStore donationStore;
 
   const DonationStatusCardSelector({
-    Key? key,
+    super.key,
     required this.donationStore,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Observa ambos os ValueNotifiers ao mesmo tempo
+    // Observa o store inteiro, que é um ChangeNotifier
     return AnimatedBuilder(
-      animation: Listenable.merge([
-        donationStore.nextDonation,
-        donationStore.donations,
-      ]),
+      animation: donationStore,
       builder: (context, child) {
-        final nextDonation = donationStore.nextDonation.value;
-        final donations = donationStore.donations.value;
+        final nextDonation = donationStore.nextDonation;
+        final donations = donationStore.donations;
 
         // Se não há próxima doação agendada
         if (nextDonation == null) {
