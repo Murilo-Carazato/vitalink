@@ -10,10 +10,15 @@ class ButtonHomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Agora podemos usar diretamente os valores do tema, sem verificações de nulo
+    // Usamos o operador ! para garantir ao compilador que esses valores não são nulos
+    final borderColor = Theme.of(context).dividerTheme.color!;
+    final backgroundColor = Theme.of(context).appBarTheme.backgroundColor!;
+    
     return Card(
         clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: BorderSide(color: Theme.of(context).dividerTheme.color!)),
-        color: Theme.of(context).appBarTheme.backgroundColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: BorderSide(color: borderColor)),
+        color: backgroundColor,
         child: InkWell(
           onTap: onTap,
           child: SizedBox(
@@ -31,7 +36,13 @@ class ButtonHomePage extends StatelessWidget {
                     color: Styles.primary,
                   ),
                   const SizedBox(width: 10),
-                  Flexible(child: Text(title, style: Theme.of(context).textTheme.headlineSmall, softWrap: true))
+                  Flexible(
+                    child: Text(
+                      title, 
+                      style: Theme.of(context).textTheme.headlineSmall,
+                      softWrap: true
+                    )
+                  )
                 ],
               ),
             ),
