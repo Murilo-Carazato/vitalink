@@ -23,10 +23,6 @@ import 'package:vitalink/services/models/donation_model.dart';
 import 'package:vitalink/src/components/custom_dialog.dart';
 
 //TODO: melhorar o layout, código, q mais?
-//tirar o nome,bloodcenterid do usuário do banco de dados //notas,reminders,tokens no donation //site no bloodcenter
-//documentar e consertar o necessário ao pensar no fluxo completo do processo de doação
-//verificar email?/ o q é o remember token, sessions do laravel?/ tem algo q precisa ser feito em fila ou em cache?
-
 
 class HomePage extends StatefulWidget {
   final NearbyStore nearbyStore;
