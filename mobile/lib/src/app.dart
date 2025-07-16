@@ -19,6 +19,7 @@ import 'package:vitalink/src/pages/profile.dart';
 import 'package:vitalink/styles.dart';
 
 import 'settings/settings_controller.dart';
+import 'settings/settings_view.dart';
 
 class MyApp extends StatefulWidget {
   final UserStore userStore;
@@ -40,6 +41,35 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   @override
+  void initState() {
+    super.initState();
+    // Garantir que o tema seja carregado antes de qualquer operação
+    widget.settingsController.loadSettings();
+    
+    // Verificar se há um usuário autenticado quando o aplicativo é iniciado
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAuthentication();
+    });
+  }
+
+  Future<void> _checkAuthentication() async {
+    // O UserStore já deve estar carregado com o usuário autenticado desde o main.dart
+    final hasUser = widget.userStore.state.value.isNotEmpty && 
+                   widget.userStore.state.value.first.token != null &&
+                   widget.userStore.state.value.first.token!.isNotEmpty;
+    
+    if (hasUser) {
+      print('User is already authenticated, fetching data...');
+      try {
+        // Carregar dados iniciais necessários
+        await widget.donationStore.fetchNextDonation();
+      } catch (e) {
+        print('Error loading initial data: $e');
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: widget.settingsController,
@@ -56,6 +86,7 @@ class _MyAppState extends State<MyApp> {
               final email = args['email'] as String;
               return EmailVerificationPage(email: email);
             },
+            '/settings': (context) => SettingsView(controller: widget.settingsController),
           },
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
