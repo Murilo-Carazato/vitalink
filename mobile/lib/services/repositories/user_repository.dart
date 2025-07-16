@@ -35,18 +35,50 @@ class UserRepository implements IUserRepository {
   }
 
   Future<UserModel?> getAuthenticatedUser() async {
-    db = await DatabaseHelper.instance.database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      'User',
-      where: 'token IS NOT NULL AND token != ?',
-      whereArgs: [''],
-      limit: 1,
-    );
+    try {
+      db = await DatabaseHelper.instance.database;
+      final List<Map<String, dynamic>> maps = await db.query(
+        'User',
+        where: 'token IS NOT NULL AND token != ?',
+        whereArgs: [''],
+        limit: 1,
+      );
 
-    if (maps.isNotEmpty) {
-      return UserModel.fromMap(maps.first);
+      if (maps.isNotEmpty) {
+        final user = UserModel.fromMap(maps.first);
+        if (user.token != null && user.token!.isNotEmpty) {
+          print('Found authenticated user in database: ${user.id}, token: ${user.token!.substring(0, 10)}...');
+          return user;
+        }
+      }
+      print('No authenticated user found in database');
+      return null;
+    } catch (e) {
+      print('Error retrieving authenticated user: $e');
+      return null;
     }
-    return null;
+  }
+
+  Future<bool> saveAuthToken(int userId, String token) async {
+    try {
+      db = await DatabaseHelper.instance.database;
+      
+      final user = await getUserById(userId);
+      if (user != null) {
+        final updatedUser = user.copyWith(token: token);
+        final result = await db.update(
+          'User', 
+          updatedUser.toMap(), 
+          where: 'id = ?', 
+          whereArgs: [userId],
+        );
+        return result > 0;
+      }
+      return false;
+    } catch (e) {
+      print('Error saving auth token: $e');
+      return false;
+    }
   }
 
   Future<UserModel?> getUserById(int id) async {
