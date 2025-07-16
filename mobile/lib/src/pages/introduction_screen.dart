@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:introduction_screen/introduction_screen.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:vitalink/services/models/user_model.dart';
 import 'package:vitalink/services/stores/user_store.dart';
 import 'package:vitalink/src/pages/auth.dart';
 import 'package:vitalink/styles.dart';
+import 'package:go_router/go_router.dart';
 
 class MyIntroductionScreen extends StatefulWidget {
   final UserStore userStore;
@@ -97,7 +99,7 @@ class _MyIntroductionScreenState extends State<MyIntroductionScreen> {
             () {
               if (context.mounted) {
                 // Navigator.of(context).pushReplacementNamed('/tab');
-                Navigator.of(context).pushReplacementNamed(AuthScreen.routeName);
+                context.go('/auth');
               }
             },
           );
