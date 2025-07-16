@@ -6,6 +6,7 @@ import 'package:vitalink/services/stores/auth_store.dart';
 import 'package:vitalink/services/stores/user_store.dart'; // Added import for UserStore
 import 'package:vitalink/styles.dart';
 import 'package:vitalink/src/pages/forgot_password_page.dart';
+import 'package:go_router/go_router.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -85,22 +86,16 @@ class _AuthScreenState extends State<AuthScreen>
       if (result['success']) {
         if (!result['email_verified']) {
           // Redirecionar para a página de verificação de email
-          Navigator.of(context).pushReplacementNamed(
-            '/email-verification',
-            arguments: {'email': _emailController.text.trim()}
-          );
+          context.go('/email-verification', extra: {'email': _emailController.text.trim()});
         } else {
           // Carrega os dados do novo usuário no UserStore ANTES de navegar
           final userStore = Provider.of<UserStore>(context, listen: false);
           await userStore.loadCurrentUser();
-          Navigator.of(context).pushReplacementNamed('/tab');
+          context.go('/tab');
         }
       } else if (!result['email_verified'] && result.containsKey('email')) {
         // Email não verificado
-        Navigator.of(context).pushReplacementNamed(
-          '/email-verification',
-          arguments: {'email': result['email']}
-        );
+        context.go('/email-verification', extra: {'email': result['email']});
       } else {
         // Outro erro
         _showErrorMessage(authStore.error);
@@ -127,7 +122,7 @@ class _AuthScreenState extends State<AuthScreen>
         final userStore = Provider.of<UserStore>(context, listen: false);
         await userStore.loadCurrentUser();
 
-        Navigator.of(context).pushReplacementNamed('/tab');
+        context.go('/tab');
       }
     } else {
       if (mounted) {
@@ -137,7 +132,7 @@ class _AuthScreenState extends State<AuthScreen>
   }
 
   void _handleForgotPassword() {
-    Navigator.of(context).pushNamed(ForgotPasswordPage.routeName);
+    context.push('/forgot-password');
   }
 
   String? _validateName(String? value) {
