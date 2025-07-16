@@ -1,17 +1,50 @@
 import 'package:flutter/material.dart';
+import 'package:vitalink/services/repositories/user_repository.dart';
 
-/// A service that stores and retrieves user settings.
-///
-/// By default, this class does not persist user settings. If you'd like to
-/// persist the user settings locally, use the shared_preferences package. If
-/// you'd like to store settings on a web server, use the http package.
+/// Serviço que armazena e recupera as configurações do usuário.
 class SettingsService {
-  /// Loads the User's preferred ThemeMode from local or remote storage.
-  Future<ThemeMode> themeMode() async => ThemeMode.system;
+  final UserRepository _userRepository = UserRepository();
 
-  /// Persists the user's preferred ThemeMode to local or remote storage.
+  /// Carrega o ThemeMode preferido do usuário do armazenamento local.
+  Future<ThemeMode> themeMode() async {
+    try {
+      final users = await _userRepository.getUser();
+      if (users.isNotEmpty) {
+        return users.first.getThemeMode();
+      }
+    } catch (e) {
+      print('Erro ao carregar tema: $e');
+    }
+    // Padrão para tema escuro se não encontrar usuário
+    return ThemeMode.dark;
+  }
+
+  /// Persiste o ThemeMode preferido do usuário no armazenamento local.
   Future<void> updateThemeMode(ThemeMode theme) async {
-    // Use the shared_preferences package to persist settings locally or the
-    // http package to persist settings over the network.
+    try {
+      final users = await _userRepository.getUser();
+      if (users.isNotEmpty) {
+        final user = users.first;
+        
+        String themeModeString;
+        switch (theme) {
+          case ThemeMode.light:
+            themeModeString = 'light';
+            break;
+          case ThemeMode.dark:
+            themeModeString = 'dark';
+            break;
+          case ThemeMode.system:
+            themeModeString = 'system';
+            break;
+        }
+        
+        final updatedUser = user.copyWith(themeMode: themeModeString);
+        await _userRepository.updateUser(updatedUser);
+        print('Tema atualizado para: $themeModeString');
+      }
+    } catch (e) {
+      print('Erro ao salvar tema: $e');
+    }
   }
 }
