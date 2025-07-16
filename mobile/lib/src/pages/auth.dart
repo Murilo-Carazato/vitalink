@@ -65,33 +65,45 @@ class _AuthScreenState extends State<AuthScreen>
     if (_formKey.currentState!.validate()) {
       final authStore = Provider.of<AuthStore>(context, listen: false);
 
-      bool success = false;
+      late Map<String, dynamic> result;
 
       if (_isLoginMode) {
-        success = await authStore.login(
+        result = await authStore.login(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
       } else {
-        success = await authStore.register(
+        result = await authStore.register(
           email: _emailController.text.trim(),
           password: _passwordController.text,
           isadmin: 'admin', // Valor padrão
         );
       }
 
-      if (success) {
-        if (mounted) {
+      if (!mounted) return;
+
+      if (result['success']) {
+        if (!result['email_verified']) {
+          // Redirecionar para a página de verificação de email
+          Navigator.of(context).pushReplacementNamed(
+            '/email-verification',
+            arguments: {'email': _emailController.text.trim()}
+          );
+        } else {
           // Carrega os dados do novo usuário no UserStore ANTES de navegar
           final userStore = Provider.of<UserStore>(context, listen: false);
           await userStore.loadCurrentUser();
-
           Navigator.of(context).pushReplacementNamed('/tab');
         }
+      } else if (!result['email_verified'] && result.containsKey('email')) {
+        // Email não verificado
+        Navigator.of(context).pushReplacementNamed(
+          '/email-verification',
+          arguments: {'email': result['email']}
+        );
       } else {
-        if (mounted) {
-          _showErrorMessage(authStore.error);
-        }
+        // Outro erro
+        _showErrorMessage(authStore.error);
       }
     }
   }
