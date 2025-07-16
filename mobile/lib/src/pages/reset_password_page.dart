@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:vitalink/services/stores/auth_store.dart';
-import 'package:vitalink/src/pages/auth.dart';
 import 'package:vitalink/styles.dart';
+import 'package:go_router/go_router.dart';
 
 class ResetPasswordPage extends StatefulWidget {
   static const routeName = '/reset-password';
@@ -58,8 +58,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.of(context)
-              .pushNamedAndRemoveUntil(AuthScreen.routeName, (route) => false);
+          context.go('/auth');
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
