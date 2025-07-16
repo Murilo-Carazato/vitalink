@@ -9,11 +9,12 @@ use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Database\Eloquent\Builder;
 use App\Enums\DonationStatus;
+use Illuminate\Support\Facades\Cache;
 
 class DonationService
 {
     /**
-     * Get a paginated and filtered list of donations.
+     * Get a paginated and filtered list of donations (admin only).
      */
     public function getDonations(Request $request): Builder
     {
@@ -31,6 +32,9 @@ class DonationService
         if ($request->has('blood_type')) {
             $query->where('blood_type', $request->blood_type);
         }
+        if ($request->has('bloodcenter_id')) {
+            $query->where('bloodcenter_id', $request->bloodcenter_id);
+        }
 
         $query->with('bloodcenter')->orderBy('donation_date', 'desc');
 
@@ -42,7 +46,17 @@ class DonationService
      */
     public function getDonationByToken(string $token): ?Donation
     {
-        return Donation::where('donation_token', $token)->with('bloodcenter')->first();
+        return Donation::findByToken($token);
+    }
+
+    /**
+     * Find a donation by its confirmation token.
+     */
+    public function getDonationByConfirmationToken(string $token): ?Donation
+    {
+        return Donation::where('confirmation_token', $token)
+                      ->with('bloodcenter')
+                      ->first();
     }
 
     /**
@@ -76,6 +90,12 @@ class DonationService
     public function confirmDonation(Donation $donation, array $data): Donation
     {
         $donation->update($data);
+        
+        // If status is confirmed, mark as confirmed
+        if ($data['status'] === DonationStatus::CONFIRMED) {
+            $donation->markAsConfirmed();
+        }
+        
         return $donation;
     }
 
@@ -92,7 +112,7 @@ class DonationService
             abort(Response::HTTP_FORBIDDEN, 'Doação não pode ser cancelada');
         }
 
-        $donation->update(['status' => 'cancelled']);
+        $donation->markAsCancelled();
         return $donation;
     }
 
@@ -109,29 +129,28 @@ class DonationService
             abort(Response::HTTP_FORBIDDEN, 'A doação não pode ser concluída no estado atual.');
         }
 
-        $donation->status = DonationStatus::COMPLETED;
-        $donation->save();
-
+        $donation->markAsCompleted();
         return $donation;
     }
 
     /**
-     * Get donation statistics.
+     * Get donation statistics (admin only).
      */
     public function getDonationStatistics(Request $request): array
     {
         $query = Donation::query();
 
-        // Adicionar lógica de permissão se necessário
-        // if ($request->user()->isadmin == 'admin') {
-        //     $query->where('bloodcenter_id', $request->user()->bloodcenter_id);
-        // }
+        // Filter by blood center if user is admin (not super admin)
+        if ($request->user()->isAdmin() && !$request->user()->isSuperAdmin()) {
+            $query->where('bloodcenter_id', $request->user()->bloodcenter_id);
+        }
 
         return [
             'total_donations' => (clone $query)->count(),
-            'completed_donations' => (clone $query)->where('status', 'completed')->count(),
-            'scheduled_donations' => (clone $query)->where('status', 'scheduled')->count(),
-            'cancelled_donations' => (clone $query)->where('status', 'cancelled')->count(),
+            'completed_donations' => (clone $query)->where('status', DonationStatus::COMPLETED)->count(),
+            'scheduled_donations' => (clone $query)->where('status', DonationStatus::SCHEDULED)->count(),
+            'confirmed_donations' => (clone $query)->where('status', DonationStatus::CONFIRMED)->count(),
+            'cancelled_donations' => (clone $query)->where('status', DonationStatus::CANCELLED)->count(),
             'donations_today' => (clone $query)->whereDate('donation_date', today())->count(),
             'blood_type_distribution' => (clone $query)->groupBy('blood_type')
                 ->selectRaw('blood_type, count(*) as total')
@@ -148,6 +167,61 @@ class DonationService
      */
     public function getDonationsForUser(User $user)
     {
-        return $user->donations()->with('bloodcenter')->orderBy('donation_date', 'desc')->get();
+        return $user->donations()
+                   ->with('bloodcenter')
+                   ->orderBy('donation_date', 'desc')
+                   ->get();
+    }
+
+    /**
+     * Get donations that need reminders.
+     */
+    public function getDonationsNeedingReminders()
+    {
+        return Donation::where('status', DonationStatus::SCHEDULED)
+                      ->where('reminder_sent', false)
+                      ->where('donation_date', '>', now())
+                      ->where('donation_date', '<=', now()->addDay())
+                      ->with('user', 'bloodcenter')
+                      ->get();
+    }
+
+    /**
+     * Send reminder for a donation.
+     */
+    public function sendReminder(Donation $donation): bool
+    {
+        if (!$donation->needsReminder()) {
+            return false;
+        }
+
+        // Here you would implement the actual reminder sending logic
+        // For now, just mark as sent
+        $donation->markReminderSent();
+        
+        return true;
+    }
+
+    /**
+     * Get donations for a specific blood center.
+     */
+    public function getDonationsForBloodCenter(int $bloodcenterId, Request $request = null)
+    {
+        $query = Donation::where('bloodcenter_id', $bloodcenterId)
+                        ->with('bloodcenter');
+
+        if ($request) {
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
+            }
+            if ($request->has('date_from')) {
+                $query->whereDate('donation_date', '>=', $request->date_from);
+            }
+            if ($request->has('date_to')) {
+                $query->whereDate('donation_date', '<=', $request->date_to);
+            }
+        }
+
+        return $query->orderBy('donation_date', 'desc')->get();
     }
 }
