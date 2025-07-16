@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:vitalink/src/settings/settings_view.dart';
 
 class ButtonSettings extends StatelessWidget {
@@ -6,6 +7,9 @@ class ButtonSettings extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(onPressed: () => Navigator.restorablePushNamed(context, SettingsView.routeName), icon: const Icon(Icons.settings));
+    return IconButton(
+      onPressed: () => context.push('/settings'),
+      icon: const Icon(Icons.settings)
+    );
   }
 }
