@@ -16,20 +16,40 @@ class UserStore with ChangeNotifier {
   Future<bool> loadCurrentUser() async {
     isLoading.value = true;
     try {
-      final result =
-          await (repository as UserRepository).getAuthenticatedUser();
+      // Tenta buscar o usuário autenticado do banco de dados local
+      final result = await (repository as UserRepository).getAuthenticatedUser();
 
       if (result != null) {
+        // Se encontrou um usuário autenticado
         state.value = [result];
-        MyHttpClient.setToken(result.token!);
-        return true;
-      } else {
-        state.value = [];
-        MyHttpClient.setToken('');
-        return false;
+        
+        // Configura o token para uso nas requisições
+        if (result.token != null && result.token!.isNotEmpty) {
+          MyHttpClient.setToken(result.token!);
+          print('Token loaded and set from database: ${result.token!.substring(0, 10)}...');
+          
+          // Validar o token com uma chamada simples ao servidor
+          try {
+            // Aqui você poderia adicionar uma chamada simples para verificar se o token é válido
+            // Por exemplo, uma verificação de status ou obtenção do perfil do usuário
+          } catch (e) {
+            print('Token validation error: $e');
+            // Mesmo com erro, mantemos o token para tentar usar
+          }
+          return true;
+        }
       }
-    } on NotFoundException catch (e) {
-      erro.value = e.message;
+      
+      // Nenhum usuário autenticado encontrado ou token inválido
+      state.value = [];
+      MyHttpClient.setToken('');
+      print('No valid token found, user will need to login');
+      return false;
+    } on Exception catch (e) {
+      print('Error loading current user: $e');
+      erro.value = e.toString();
+      state.value = [];
+      MyHttpClient.setToken('');
       return false;
     } finally {
       isLoading.value = false;
