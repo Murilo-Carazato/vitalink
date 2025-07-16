@@ -40,6 +40,7 @@ class AppRouter {
       // Rota inicial que decide para onde ir com base no estado de autenticação
       GoRoute(
         path: '/',
+        name: '/',
         redirect: (context, state) {
           // Verificar se o usuário está autenticado
           if (userStore.state.value.isNotEmpty &&
@@ -62,57 +63,50 @@ class AppRouter {
       // Rota de autenticação
       GoRoute(
         path: '/auth',
+        name: 'auth',
         builder: (context, state) => const AuthScreen(),
       ),
       
       // Rota de introdução
       GoRoute(
         path: '/introduction',
+        name: 'introduction',
         builder: (context, state) => MyIntroductionScreen(userStore: userStore),
       ),
       
       // Rota principal (tab)
       GoRoute(
         path: '/tab',
+        name: 'tab',
         builder: (context, state) => MyTab(userStore: userStore),
       ),
       
       // Verificação de email
       GoRoute(
         path: '/email-verification',
+        name: 'email-verification',
         builder: (context, state) {
-          final email = state.extra as String? ?? state.uri.queryParameters['email'];
-          if (email == null) {
-            return const AuthScreen();
-          }
+          final email = state.extra != null 
+              ? (state.extra as Map<String, dynamic>)['email'] as String
+              : state.uri.queryParameters['email'] ?? '';
+              
           return EmailVerificationPage(email: email);
-        },
-      ),
-      
-      // Deep link para email verificado
-      GoRoute(
-        path: '/email-verified',
-        redirect: (context, state) {
-          // Carregar os dados do usuário e redirecionar para a página principal
-          userStore.loadCurrentUser();
-          return '/tab';
         },
       ),
       
       // Esqueci a senha
       GoRoute(
         path: '/forgot-password',
+        name: 'forgot-password',
         builder: (context, state) => const ForgotPasswordPage(),
       ),
       
       // Redefinir senha
       GoRoute(
         path: '/reset-password',
+        name: 'reset-password',
         builder: (context, state) {
-          final email = state.extra as String? ?? state.uri.queryParameters['email'];
-          if (email == null) {
-            return const ForgotPasswordPage();
-          }
+          final email = state.extra as String? ?? state.uri.queryParameters['email'] ?? '';
           return ResetPasswordPage(email: email);
         },
       ),
@@ -120,26 +114,32 @@ class AppRouter {
       // Configurações
       GoRoute(
         path: '/settings',
+        name: 'settings',
         builder: (context, state) => SettingsView(controller: settingsController),
       ),
       
       // Histórico
       GoRoute(
         path: '/history',
+        name: 'history',
         builder: (context, state) => const HistoryPage(),
       ),
       
       // Notícias
       GoRoute(
         path: '/news',
+        name: 'news',
         builder: (context, state) => const NewsPage(),
       ),
       
       // Detalhes do hemocentro
       GoRoute(
         path: '/blood-center-details',
+        name: 'blood-center-details',
         builder: (context, state) {
-          final bloodCenterId = int.parse(state.uri.queryParameters['id'] ?? '0');
+          final bloodCenterId = int.tryParse(state.uri.queryParameters['id'] ?? '') ?? 
+              (state.extra != null ? (state.extra as Map<String, dynamic>)['bloodCenterId'] as int : 0);
+              
           return BloodCenterDetailsPage(bloodCenterId: bloodCenterId);
         },
       ),
@@ -147,8 +147,11 @@ class AppRouter {
       // Agendar doação
       GoRoute(
         path: '/schedule-donation',
+        name: 'schedule-donation',
         builder: (context, state) {
-          final bloodCenterId = int.tryParse(state.uri.queryParameters['bloodCenterId'] ?? '');
+          final bloodCenterId = int.tryParse(state.uri.queryParameters['bloodCenterId'] ?? '') ?? 
+              (state.extra != null ? (state.extra as Map<String, dynamic>)['preSelectedBloodcenterId'] as int? : null);
+              
           return ScheduleDonationPage(
             donationStore: donationStore,
             bloodCenterStore: bloodCenterStore,
@@ -158,14 +161,5 @@ class AppRouter {
         },
       ),
     ],
-    
-    // Configuração para deep links
-    redirect: (context, state) {
-      // Verificar se é um deep link de email verificado
-      if (state.uri.toString().startsWith('vitalink://app/email-verified')) {
-        return '/email-verified';
-      }
-      return null;
-    },
   );
 } 
