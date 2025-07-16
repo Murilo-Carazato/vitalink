@@ -7,6 +7,7 @@ import 'package:vitalink/services/stores/auth_store.dart';
 import 'package:vitalink/services/stores/user_store.dart';
 import 'package:vitalink/src/pages/auth.dart';
 import 'package:vitalink/styles.dart';
+import 'package:go_router/go_router.dart';
 
 class EmailVerificationPage extends StatefulWidget {
   static const String routeName = '/email-verification';
@@ -60,7 +61,7 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
         await userStore.loadCurrentUser();
         
         if (mounted) {
-          Navigator.of(context).pushReplacementNamed('/tab');
+          GoRouter.of(context).go('/tab');
         }
       }
     } catch (e) {
@@ -108,7 +109,7 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
     // Logout e retorno à página de login
     final authStore = Provider.of<AuthStore>(context, listen: false);
     authStore.signOut().then((_) {
-      Navigator.of(context).pushReplacementNamed(AuthScreen.routeName);
+      GoRouter.of(context).go('/auth');
     });
   }
 
@@ -118,104 +119,108 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
       appBar: AppBar(
         title: const Text('Verificação de Email'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Icon(
-              LucideIcons.mailQuestion,
-              size: 80,
-              color: Styles.primary,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Verifique seu Email',
-              style: Theme.of(context).textTheme.titleLarge,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Enviamos um link de verificação para ${widget.email}',
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Por favor, verifique seu email para continuar usando o aplicativo.',
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Após verificar seu email, você será redirecionado automaticamente.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontStyle: FontStyle.italic,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 20),
+              const Icon(
+                LucideIcons.mailQuestion,
+                size: 80,
+                color: Styles.primary,
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            
-            if (_errorMessage != null)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+              const SizedBox(height: 24),
+              Text(
+                'Verifique seu Email',
+                style: Theme.of(context).textTheme.titleLarge,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Enviamos um link de verificação para ${widget.email}',
+                style: Theme.of(context).textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Por favor, verifique seu email para continuar usando o aplicativo.',
+                style: Theme.of(context).textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Após verificar seu email, você será redirecionado automaticamente.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontStyle: FontStyle.italic,
                 ),
-                child: Text(
-                  _errorMessage!,
-                  style: TextStyle(color: Colors.red.shade800),
-                  textAlign: TextAlign.center,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              
+              if (_errorMessage != null)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    _errorMessage!,
+                    style: TextStyle(color: Colors.red.shade800),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                
+              if (_successMessage != null)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    _successMessage!,
+                    style: TextStyle(color: Colors.green.shade800),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                
+              const SizedBox(height: 24),
+              
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _resendVerificationEmail,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Styles.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text('Reenviar Email de Verificação'),
                 ),
               ),
               
-            if (_successMessage != null)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  _successMessage!,
-                  style: TextStyle(color: Colors.green.shade800),
-                  textAlign: TextAlign.center,
-                ),
-              ),
+              const SizedBox(height: 16),
               
-            const SizedBox(height: 24),
-            
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _resendVerificationEmail,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Styles.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Text('Reenviar Email de Verificação'),
+              TextButton(
+                onPressed: _goBackToLogin,
+                child: const Text('Voltar para o Login'),
               ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            TextButton(
-              onPressed: _goBackToLogin,
-              child: const Text('Voltar para o Login'),
-            ),
-          ],
+              const SizedBox(height: 20), // Add extra space at the bottom for keyboard
+            ],
+          ),
         ),
       ),
     );
