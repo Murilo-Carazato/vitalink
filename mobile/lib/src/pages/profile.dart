@@ -15,6 +15,7 @@ import 'dart:io';
 import 'package:vitalink/src/components/custom_dialog.dart';
 import 'package:vitalink/services/stores/auth_store.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 
 class ProfilePage extends StatefulWidget {
   final UserStore userStore;
@@ -395,10 +396,9 @@ class _ProfilePageState extends State<ProfilePage> {
                             Provider.of<AuthStore>(context, listen: false);
                         await widget.userStore.logout(authStore);
 
-                        // Redirecionar para tela de login
+                        // Usar o GoRouter para navegar
                         if (context.mounted) {
-                          Navigator.of(context).pushNamedAndRemoveUntil(
-                              '/auth', (route) => false);
+                          context.go('/auth');
                         }
                       }
                     },
