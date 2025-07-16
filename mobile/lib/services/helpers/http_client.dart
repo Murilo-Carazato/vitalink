@@ -10,11 +10,26 @@ class MyHttpClient {
 
 
   static void setToken(String newToken) {
+    if (newToken.isEmpty) {
+      print('WARNING: Setting empty token in HTTP client');
+      _token = null;
+      return;
+    }
     _token = newToken;
+    print('Token set in HTTP client: ${newToken.length > 10 ? newToken.substring(0, 10) + '...' : newToken}');
+  }
+
+  static void clearToken() {
+    print('Clearing token in HTTP client');
+    _token = null;
   }
 
   static String? getToken() {
     return _token;
+  }
+
+  static bool hasValidToken() {
+    return _token != null && _token!.isNotEmpty;
   }
 
   static Map<String, String> getHeaders({String? token, bool isJson = false}) {
