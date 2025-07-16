@@ -5,6 +5,7 @@ import 'package:vitalink/services/models/blood_center_model.dart';
 import 'package:vitalink/services/stores/blood_center_store.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vitalink/src/pages/schedule_donation.dart';
+import 'package:go_router/go_router.dart';
 
 class BloodCenterDetailsPage extends StatefulWidget {
   static const routeName = '/blood-center-details';
@@ -147,13 +148,9 @@ class _BloodCenterDetailsPageState extends State<BloodCenterDetailsPage> {
           floatingActionButton: bloodCenter != null
               ? FloatingActionButton.extended(
                   onPressed: () {
-                    Navigator.pushNamed(
-                      context,
-                      ScheduleDonationPage.routeName,
-                      arguments: {
-                        'preSelectedBloodcenterId': bloodCenter.id,
-                      },
-                    );
+                    context.push('/schedule-donation', extra: {
+                      'preSelectedBloodcenterId': bloodCenter.id,
+                    });
                   },
                   label: const Text('Agendar Doação'),
                   icon: const Icon(LucideIcons.calendar),
