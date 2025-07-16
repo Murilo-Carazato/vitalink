@@ -1,5 +1,6 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:convert';
+import 'package:flutter/material.dart';
 
 class UserModel {
   final int id;
@@ -14,6 +15,7 @@ class UserModel {
   final String? email;
   final String? token;
   final String? profilePhotoPath;
+  final String? themeMode;
 
   UserModel({
     required this.id,
@@ -27,6 +29,7 @@ class UserModel {
     this.email,
     this.token,
     this.profilePhotoPath,
+    this.themeMode = 'dark',
   });
 
   //O código a seguir sobrescreve o operador "==". Sendo assim, compara duas instâncias e verifica se são iguais.
@@ -45,6 +48,7 @@ class UserModel {
         other.hasPermanentMakeup == hasPermanentMakeup &&
         other.email == email &&
         other.token == token &&
+        other.themeMode == themeMode &&
         other.profilePhotoPath == profilePhotoPath;
   }
 
@@ -60,6 +64,7 @@ class UserModel {
     String? email,
     String? token,
     String? profilePhotoPath,
+    String? themeMode,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -73,6 +78,7 @@ class UserModel {
       email: email ?? this.email,
       token: token ?? this.token,
       profilePhotoPath: profilePhotoPath ?? this.profilePhotoPath,
+      themeMode: themeMode ?? this.themeMode,
     );
   }
 
@@ -89,6 +95,7 @@ class UserModel {
       'email': email,
       'token': token,
       'profile_photo_path': profilePhotoPath,
+      'theme_mode': themeMode,
     };
   }
 
@@ -105,6 +112,7 @@ class UserModel {
       email: map['email'],
       token: map['token'],
       profilePhotoPath: map['profile_photo_path'] as String?,
+      themeMode: map['theme_mode'] ?? 'dark',
     );
   }
 
@@ -115,7 +123,7 @@ class UserModel {
 
   @override
   String toString() {
-    return 'UserModel(id: $id, name: $name, birthDate: $birthDate, bloodType: $bloodType, viewedTutorial: $viewedTutorial, hasTattoo: $hasTattoo, hasMicropigmentation: $hasMicropigmentation, hasPermanentMakeup: $hasPermanentMakeup, email: $email, token: $token, profilePhotoPath: $profilePhotoPath)';
+    return 'UserModel(id: $id, name: $name, birthDate: $birthDate, bloodType: $bloodType, viewedTutorial: $viewedTutorial, hasTattoo: $hasTattoo, hasMicropigmentation: $hasMicropigmentation, hasPermanentMakeup: $hasPermanentMakeup, email: $email, token: $token, profilePhotoPath: $profilePhotoPath, themeMode: $themeMode)';
   }
 
   @override
@@ -130,6 +138,21 @@ class UserModel {
         hasPermanentMakeup.hashCode ^
         email.hashCode ^
         token.hashCode ^
-        profilePhotoPath.hashCode;
+        profilePhotoPath.hashCode ^
+        themeMode.hashCode;
+  }
+
+  // Converte a string do tema para o enum ThemeMode do Flutter
+  ThemeMode getThemeMode() {
+    switch (themeMode) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      case 'system':
+        return ThemeMode.system;
+      default:
+        return ThemeMode.dark; // Valor padrão
+    }
   }
 }
