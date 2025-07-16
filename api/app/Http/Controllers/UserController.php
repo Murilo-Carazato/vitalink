@@ -16,10 +16,10 @@ class UserController extends Controller
     public function __construct(UserService $userService)
     {
         $this->userService = $userService;
-        $this->middleware('can:viewAny,' . User::class)->only('index');
-        $this->middleware('can:view,user')->only('show');
-        $this->middleware('can:update,user')->only('update');
-        $this->middleware('can:delete,user')->only('destroy');
+        // $this->middleware('can:viewAny,' . User::class)->only('index');
+        // $this->middleware('can:view,user')->only('show');
+        // $this->middleware('can:update,user')->only('update');
+        // $this->middleware('can:delete,user')->only('destroy');
     }
 
     public function index()
