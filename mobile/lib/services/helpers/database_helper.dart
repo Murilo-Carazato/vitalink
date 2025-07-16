@@ -20,7 +20,7 @@ class DatabaseHelper {
   _initDatabase() async {
     Database localStorage = await openDatabase(
       join(await getDatabasesPath(), 'bloodbank.db'),
-      version: 5, // <- mudei de 4 para 5
+      version: 6, // <- mudei de 5 para 6
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -51,6 +51,14 @@ class DatabaseHelper {
       await db.execute('DROP TABLE IF EXISTS User');
       await db.execute(_user);
     }
+    if (oldVersion < 6) {
+      // Adiciona coluna para tema
+      try {
+        await db.execute('ALTER TABLE User ADD COLUMN theme_mode TEXT DEFAULT "dark"');
+      } catch (e) {
+        print('Erro ao adicionar coluna theme_mode: $e');
+      }
+    }
   }
 
   String get _user => '''
@@ -65,7 +73,8 @@ class DatabaseHelper {
         viewedTutorial INTEGER NOT NULL DEFAULT 0,
         email TEXT,
         token TEXT,
-        profile_photo_path TEXT
+        profile_photo_path TEXT,
+        theme_mode TEXT DEFAULT "dark"
         );
     ''';
 
