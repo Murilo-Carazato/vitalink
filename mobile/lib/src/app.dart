@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 import 'package:vitalink/services/stores/blood_center_store.dart';
 import 'package:vitalink/services/stores/donation_store.dart';
@@ -8,22 +10,13 @@ import 'package:vitalink/services/stores/nearby_store.dart';
 import 'package:vitalink/services/stores/user_store.dart';
 import 'package:vitalink/src/components/button_search.dart';
 import 'package:vitalink/src/components/button_settings.dart';
-import 'package:vitalink/src/pages/blood_center_details.dart';
+import 'package:vitalink/src/pages/auth.dart';
 import 'package:vitalink/src/pages/blood_centers.dart';
+import 'package:vitalink/src/pages/email_verification_page.dart';
 import 'package:vitalink/src/pages/guide.dart';
 import 'package:vitalink/src/pages/home.dart';
-import 'package:vitalink/src/pages/history.dart';
-import 'package:vitalink/src/pages/introduction_screen.dart';
-import 'package:vitalink/src/pages/auth.dart';
-import 'package:vitalink/src/pages/forgot_password_page.dart';
-import 'package:vitalink/src/pages/news.dart';
 import 'package:vitalink/src/pages/profile.dart';
-import 'package:vitalink/src/pages/reset_password_page.dart';
-import 'package:vitalink/src/pages/schedule_donation.dart';
-import 'package:vitalink/src/settings/settings_view.dart';
 import 'package:vitalink/styles.dart';
-import 'package:provider/provider.dart';
-import 'package:skeletonizer/skeletonizer.dart';
 
 import 'settings/settings_controller.dart';
 
@@ -47,11 +40,6 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: widget.settingsController,
@@ -59,7 +47,16 @@ class _MyAppState extends State<MyApp> {
         return MaterialApp(
           title: 'Blood Bank',
           debugShowCheckedModeBanner: false,
-          restorationScopeId: 'app',
+          routes: {
+            '/': (context) => const AuthScreen(),
+            '/tab': (context) => MyTab(userStore: widget.userStore),
+            '/email-verification': (context) {
+              // Extract email from arguments map
+              final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+              final email = args['email'] as String;
+              return EmailVerificationPage(email: email);
+            },
+          },
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
@@ -73,16 +70,6 @@ class _MyAppState extends State<MyApp> {
                 TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
               },
             ),
-            extensions: const [
-              SkeletonizerConfigData(
-                  enableSwitchAnimation: true,
-                  switchAnimationConfig: SwitchAnimationConfig(
-                    switchInCurve: Easing.legacyAccelerate,
-                    switchOutCurve: Easing.emphasizedDecelerate,
-                    duration: Duration(milliseconds: 300),
-                    reverseDuration: Duration(milliseconds: 450),
-                  )),
-            ],
             brightness: Brightness.light,
             scaffoldBackgroundColor: Colors.white,
             splashColor: Styles.border,
@@ -240,7 +227,6 @@ class _MyAppState extends State<MyApp> {
               ),
             ),
           ),
-
           darkTheme: ThemeData(
             pageTransitionsTheme: const PageTransitionsTheme(
               builders: {
@@ -249,16 +235,6 @@ class _MyAppState extends State<MyApp> {
               },
             ),
             primaryColor: Styles.primary,
-            extensions: const [
-              SkeletonizerConfigData.dark(
-                  enableSwitchAnimation: true,
-                  switchAnimationConfig: SwitchAnimationConfig(
-                    switchInCurve: Easing.legacyAccelerate,
-                    switchOutCurve: Easing.emphasizedDecelerate,
-                    duration: Duration(milliseconds: 300),
-                    reverseDuration: Duration(milliseconds: 450),
-                  )),
-            ],
             brightness: Brightness.dark,
             scaffoldBackgroundColor: Styles.darkBackground,
 
@@ -420,70 +396,12 @@ class _MyAppState extends State<MyApp> {
             ),
           ),
           themeMode: widget.settingsController.themeMode,
-          // initialRoute: '/navbar',
-
-          //NÃO UTILIZAR PARÂMETRO NOMEADO "home:".
-          //Para configurar uma rota padrão do app (primária), ir até switch case de onGenerateRoute e alterar retorno do default.
-          onGenerateRoute: (RouteSettings routeSettings) {
-            return MaterialPageRoute<void>(
-              settings: routeSettings,
-              builder: (BuildContext context) {
-                switch (routeSettings.name) {
-                  case ScheduleDonationPage.routeName:
-                    return ScheduleDonationPage(
-                      donationStore: widget.donationStore,
-                      bloodCenterStore: widget.bloodCenterStore,
-                      userStore: widget.userStore,
-                    );
-                  case SettingsView.routeName:
-                    return SettingsView(controller: widget.settingsController);
-                  case HistoryPage.routeName:
-                    return const HistoryPage();
-                  case NewsPage.routeName:
-                    return const NewsPage();
-                  case MyTab.routeName:
-                    return MyTab(userStore: widget.userStore);
-                  case AuthScreen.routeName:
-                    return const AuthScreen();
-                  case ResetPasswordPage.routeName:
-                    final args = routeSettings.arguments as Map<String, dynamic>?;
-                    final email = args?['email'] as String?;
-                    if (email == null) {
-                      // Se não houver e-mail, redirecione de volta para a página de solicitação
-                      return const ForgotPasswordPage();
-                    }
-                    return ResetPasswordPage(email: email);
-                  case ForgotPasswordPage.routeName:
-                    return const ForgotPasswordPage();
-                  case BloodCenterDetailsPage.routeName:
-                    final args =
-                        routeSettings.arguments as Map<String, dynamic>;
-                    return BloodCenterDetailsPage(
-                      bloodCenterId: args['bloodCenterId'],
-                    );
-                  default:
-                    // Verifica de forma segura se a lista de usuários não está vazia
-                    // e se o usuário tem um token.
-                    if (widget.userStore.state.value.isNotEmpty &&
-                        widget.userStore.state.value.first.token != null &&
-                        widget.userStore.state.value.first.token!.isNotEmpty) {
-                      final user = widget.userStore.state.value.first;
-                      if (!user.viewedTutorial) {
-                        return MyIntroductionScreen(userStore: widget.userStore);
-                      }
-                      return MyTab(userStore: widget.userStore);
-                    } else {
-                      return const AuthScreen();
-                    }
-                }
-              },
-            );
-          },
         );
       },
     );
   }
 }
+
 class MyTab extends StatefulWidget {
   final UserStore userStore;
   const MyTab({super.key, required this.userStore});
