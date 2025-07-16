@@ -5,6 +5,7 @@ import 'package:vitalink/services/models/register_request.dart';
 import 'package:vitalink/services/models/user_model.dart';
 import 'package:vitalink/services/repositories/api/auth_repository.dart';
 import 'package:vitalink/services/repositories/user_repository.dart';
+import 'dart:convert';
 
 class AuthStore with ChangeNotifier {
   final AuthRepository _authRepo;
@@ -19,7 +20,7 @@ class AuthStore with ChangeNotifier {
   bool isLoading = false;
   String error = '';
 
-  Future<bool> login({required String email, required String password}) async {
+  Future<Map<String, dynamic>> login({required String email, required String password}) async {
     _start();
     try {
       final data =
@@ -27,14 +28,59 @@ class AuthStore with ChangeNotifier {
 
       await _updateLocalUser(data);
       _finish();
-      return true;
+      return {
+        'success': true,
+        'email_verified': true,
+      };
     } catch (e) {
       _error(e);
-      return false;
+      
+      // Verificar se o erro é de email não verificado
+      if (e.toString().contains('verifique seu email') || 
+          e.toString().contains('email verification')) {
+        return {
+          'success': false,
+          'email_verified': false,
+          'email': email,
+        };
+      }
+      
+      return {
+        'success': false,
+        'email_verified': true,
+      };
     }
   }
 
-  Future<bool> register({
+  Future<Map<String, dynamic>> checkEmailVerificationStatus({required String email}) async {
+    try {
+      // Faz uma requisição para verificar o status de verificação do email
+      final response = await MyHttpClient.get(
+        url: '/user/check-verification-status?email=$email',
+        headers: MyHttpClient.getHeaders(),
+      );
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {
+          'success': true,
+          'email_verified': data['email_verified'] ?? false,
+        };
+      } else {
+        return {
+          'success': false,
+          'email_verified': false,
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'email_verified': false,
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> register({
     required String email,
     required String password,
     String? isadmin,
@@ -50,12 +96,21 @@ class AuthStore with ChangeNotifier {
       );
       await _updateLocalUser(data);
       _finish();
-      return true;
+      
+      // No caso de registro bem-sucedido, considere que o usuário precisa verificar o email
+      return {
+        'success': true,
+        'email_verified': false,
+        'email': email,
+      };
     } catch (e, stackTrace) {
       print('error: $e');
       print('stackTrace: $stackTrace');
       _error(e);
-      return false;
+      return {
+        'success': false,
+        'email_verified': true,
+      };
     }
   }
 
