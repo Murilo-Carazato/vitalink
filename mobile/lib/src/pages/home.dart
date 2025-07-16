@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:vitalink/services/models/nearby_model.dart';
+import 'package:vitalink/services/stores/auth_store.dart';
 import 'package:vitalink/services/stores/blood_center_store.dart';
 import 'package:vitalink/services/stores/donation_store.dart';
 import 'package:vitalink/services/stores/nearby_store.dart';
@@ -21,6 +22,7 @@ import 'package:vitalink/src/pages/schedule_donation.dart';
 import 'package:add_2_calendar/add_2_calendar.dart';
 import 'package:vitalink/services/models/donation_model.dart';
 import 'package:vitalink/src/components/custom_dialog.dart';
+import 'package:go_router/go_router.dart';
 
 //TODO: melhorar o layout, código, q mais?
 
@@ -181,7 +183,7 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
                         onPressed: () {
-                          Navigator.restorablePushNamed(context, ScheduleDonationPage.routeName);
+                          context.push('/schedule-donation');
                         },
                         icon: const Icon(LucideIcons.plus),
                         label: const Text('Agendar Doação'),
@@ -359,14 +361,14 @@ class _HomePageState extends State<HomePage> {
                         title: 'Histórico',
                         sizeOfCard: constraints.maxWidth * (30.59 / 100),
                         onTap: () {
-                          Navigator.restorablePushNamed(context, HistoryPage.routeName);
+                          context.push('/history');
                         },
                       ),
                       ButtonHomePage(
                         icon: LucideIcons.droplets,
                         title: 'Doar',
                         onTap: () {
-                          Navigator.restorablePushNamed(context, ScheduleDonationPage.routeName);
+                          context.push('/schedule-donation');
                         },
                         sizeOfCard: constraints.maxWidth * (30.59 / 100),
                       ),
@@ -374,7 +376,7 @@ class _HomePageState extends State<HomePage> {
                         icon: LucideIcons.megaphone,
                         title: 'Notícias',
                         onTap: () {
-                          Navigator.restorablePushNamed(context, NewsPage.routeName);
+                          context.push('/news');
                         },
                         sizeOfCard: constraints.maxWidth * (30.59 / 100),
                       ),
@@ -462,14 +464,8 @@ class _HomePageState extends State<HomePage> {
                       subtitle: Text('${nearbyBloodCenter.distance} km de você'),
                       trailing: const Icon(LucideIcons.chevronRight),
                       onTap: () {
-                        // Navegar para a tela de detalhes do hemocentro
-                        Navigator.pushNamed(
-                          context,
-                          BloodCenterDetailsPage.routeName,
-                          arguments: {
-                            'bloodCenterId': nearbyBloodCenter.bloodCenter.id,
-                          },
-                        );
+                        // Navegar para a tela de detalhes do hemocentro usando GoRouter
+                        context.push('/blood-center-details', extra: {'bloodCenterId': nearbyBloodCenter.bloodCenter.id});
                       },
                     );
                   },
