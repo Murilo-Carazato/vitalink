@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:vitalink/services/stores/auth_store.dart';
 import 'package:vitalink/src/pages/reset_password_page.dart';
 import 'package:vitalink/styles.dart';
+import 'package:go_router/go_router.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   static const routeName = '/forgot-password';
@@ -41,9 +42,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.of(context).pushReplacementNamed(
-            ResetPasswordPage.routeName,
-            arguments: {'email': _emailController.text.trim()},
+          context.replace(
+            '/reset-password',
+            extra: {'email': _emailController.text.trim()},
           );
         } else {
           _showErrorMessage(authStore.error);
