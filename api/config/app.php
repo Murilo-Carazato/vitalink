@@ -27,7 +27,17 @@ return [
     */
 
     'env' => env('APP_ENV', 'production'),
-
+    
+    /*
+     | IP externo do servidor para links de email
+     | Usado para substituir localhost/127.0.0.1 em links enviados por email
+     | Isso permite que dispositivos externos (como celulares) acessem os links
+     */
+    'external_ip' => env('APP_EXTERNAL_IP', '192.168.0.5'),
+    
+    // URL base para deep link do aplicativo (Flutter)
+    'frontend_url' => env('FRONTEND_URL', 'vitalink://app'),
+    
     /*
     |--------------------------------------------------------------------------
     | Application Debug Mode
@@ -53,6 +63,8 @@ return [
     */
 
     'url' => env('APP_URL', 'http://localhost'),
+
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
 
     /*
     |--------------------------------------------------------------------------
