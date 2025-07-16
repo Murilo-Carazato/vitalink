@@ -172,11 +172,17 @@ class AuthStore with ChangeNotifier {
       final userRepo = _userRepo as UserRepository;
       final currentUser = await userRepo.getAuthenticatedUser();
       if (currentUser != null) {
+        print('Logging out user ${currentUser.id}');
         final loggedOutUser = currentUser.copyWith(token: '');
         await userRepo.updateUser(loggedOutUser);
       }
     }
-    MyHttpClient.setToken('');
+    
+    // Limpa o token no HttpClient
+    MyHttpClient.clearToken();
+    
+    print('User logged out successfully');
+    
     // Notifica os ouvintes para atualizar a UI
     notifyListeners();
   }
@@ -186,7 +192,9 @@ class AuthStore with ChangeNotifier {
     final userJson = data.containsKey('user') ? data['user'] : data['data'];
     final serverId = userJson['id'] as int;
 
+    // Definir o token no HttpClient para uso imediato nas requisições
     MyHttpClient.setToken(token);
+    print('Token set in HTTP client: ${token.substring(0, 10)}...');
 
     // 1. Tenta encontrar um usuário local com o mesmo ID do servidor
     final existingUser = await _userRepo.getUserById(serverId);
@@ -198,6 +206,8 @@ class AuthStore with ChangeNotifier {
         name: userJson['name'] ?? existingUser.name, // Garante que o nome esteja sincronizado
         email: userJson['email'] ?? existingUser.email, // Garante que o email esteja sincronizado
       );
+      
+      print('Updating existing user with token');
       await _userRepo.updateUser(updatedUser);
     } else {
       // 3. Se não existe, cria um novo usuário local com dados padrão
@@ -213,7 +223,17 @@ class AuthStore with ChangeNotifier {
         hasMicropigmentation: false,
         hasPermanentMakeup: false,
       );
+      
+      print('Creating new user with token');
       await _userRepo.createUser(newUser);
+    }
+    
+    // Verificar se o token foi realmente salvo
+    final verifyUser = await _userRepo.getAuthenticatedUser();
+    if (verifyUser != null && verifyUser.token == token) {
+      print('Token successfully verified in database');
+    } else {
+      print('WARNING: Token verification failed!');
     }
   }
 
