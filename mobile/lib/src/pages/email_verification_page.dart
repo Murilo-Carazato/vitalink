@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
-import 'dart:async';
 import 'package:vitalink/services/helpers/http_client.dart';
 import 'package:vitalink/services/stores/auth_store.dart';
 import 'package:vitalink/services/stores/user_store.dart';
@@ -27,22 +26,14 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
   bool _isLoading = false;
   String? _errorMessage;
   String? _successMessage;
-  Timer? _verificationCheckTimer;
 
   @override
   void initState() {
     super.initState();
-    // Iniciar o timer para verificar o status do email a cada 5 segundos
-    _verificationCheckTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      _checkEmailVerificationStatus();
-    });
+
   }
 
-  @override
-  void dispose() {
-    _verificationCheckTimer?.cancel();
-    super.dispose();
-  }
+
 
   Future<void> _checkEmailVerificationStatus() async {
     try {
@@ -53,10 +44,7 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
       final result = await authStore.checkEmailVerificationStatus(email: widget.email);
       
       if (result['email_verified'] == true) {
-        // Email verificado, redirecionar para a página principal
-        _verificationCheckTimer?.cancel();
-        
-        // Carregar os dados do usuário e navegar
+        // Email verificado, carregar os dados do usuário e navegar
         final userStore = Provider.of<UserStore>(context, listen: false);
         await userStore.loadCurrentUser();
         
@@ -84,6 +72,8 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
           'email': widget.email,
         },
       );
+
+      print(response.body);
 
       if (response.statusCode == 200) {
         setState(() {
@@ -212,6 +202,15 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
                 ),
               ),
               
+              const SizedBox(height: 16),
+
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: _isLoading ? null : _checkEmailVerificationStatus,
+                  child: const Text('Já verifiquei meu Email'),
+                ),
+              ),
               const SizedBox(height: 16),
               
               TextButton(
