@@ -7,6 +7,7 @@ import 'package:vitalink/services/stores/user_store.dart';
 import 'package:vitalink/src/pages/auth.dart';
 import 'package:vitalink/src/pages/blood_center_details.dart';
 import 'package:vitalink/src/pages/email_verification_page.dart';
+import 'package:vitalink/src/pages/email_verified_handler.dart';
 import 'package:vitalink/src/pages/forgot_password_page.dart';
 import 'package:vitalink/src/pages/history.dart';
 import 'package:vitalink/src/pages/introduction_screen.dart';
@@ -34,7 +35,7 @@ class AppRouter {
 
   late final GoRouter router = GoRouter(
     debugLogDiagnostics: true,
-    initialLocation: '/',
+
     refreshListenable: userStore,
     routes: [
       // Rota inicial que decide para onde ir com base no estado de autenticação
@@ -42,19 +43,22 @@ class AppRouter {
         path: '/',
         name: '/',
         redirect: (context, state) {
+          // Permite deep link de email verificado sem interferir
+          if (state.uri.path.startsWith('/email-verified')) {
+            return null; // não redireciona, deixa seguir
+          }
+
           // Verificar se o usuário está autenticado
           if (userStore.state.value.isNotEmpty &&
               userStore.state.value.first.token != null &&
               userStore.state.value.first.token!.isNotEmpty) {
-            
             // Verificar se o usuário já viu o tutorial
             if (!userStore.state.value.first.viewedTutorial) {
               return '/introduction';
             }
-            
             return '/tab';
           }
-          
+
           // Se não estiver autenticado, redirecionar para a tela de login
           return '/auth';
         },
@@ -81,6 +85,25 @@ class AppRouter {
         builder: (context, state) => MyTab(userStore: userStore),
       ),
       
+      // Deep link após email verificado
+      GoRoute(
+        path: '/email-verified',
+        name: 'email-verified',
+        builder: (context, state) {
+          final token = state.uri.queryParameters['token'] ?? '';
+          return EmailVerifiedHandlerPage(token: token);
+        },
+      ),
+      // Deep link com host ('app') gerado pelo backend vitalink://app/email-verified
+      GoRoute(
+        path: '/app/email-verified',
+        name: 'email-verified-host',
+        redirect: (context, state) {
+          final token = state.uri.queryParameters['token'] ?? '';
+          return '/email-verified?token=$token';
+        },
+      ),
+
       // Verificação de email
       GoRoute(
         path: '/email-verification',
