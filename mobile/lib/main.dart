@@ -10,6 +10,7 @@ import 'package:vitalink/services/repositories/api/blood_center_repository.dart'
 import 'package:vitalink/services/repositories/api/donation_repository.dart';
 import 'package:vitalink/services/repositories/user_repository.dart';
 import 'package:vitalink/services/stores/blood_center_store.dart';
+import 'package:vitalink/services/deep_link_service.dart';
 import 'package:vitalink/services/stores/auth_store.dart';
 import 'package:vitalink/services/stores/donation_store.dart';
 import 'package:vitalink/services/stores/nearby_store.dart';
@@ -24,6 +25,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await Firebase.initializeApp();
   await FirebaseMessaging.instance.requestPermission();
   
@@ -89,6 +91,10 @@ void main() async {
     settingsController: settingsController,
   );
 
+  // Após router criado, inicia serviço de deep link
+  final deepLinkService = DeepLinkService(appRouter.router);
+  await deepLinkService.init();
+
   // Definindo estilos de texto padrão para garantir que nunca sejam nulos
   const TextStyle defaultTextStyle = TextStyle(
     fontFamily: 'Inter',
@@ -140,6 +146,7 @@ void main() async {
     color: Color.fromARGB(255, 196, 196, 196),
   );
 
+
   runApp(
     MultiProvider(
       providers: [
@@ -149,77 +156,81 @@ void main() async {
         ChangeNotifierProvider(create: (_) => NearbyStore()),
         ChangeNotifierProvider(create: (_) => donationStore),
       ],
-      child: MaterialApp.router(
-        title: 'Vitalink',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          brightness: Brightness.light,
-          scaffoldBackgroundColor: Colors.white,
-          primaryColor: const Color(0xFFED1C24),
-          dividerTheme: const DividerThemeData(color: Colors.grey),
-          appBarTheme: const AppBarTheme(backgroundColor: Colors.white),
-          // Garantir que os estilos de texto nunca sejam nulos
-          textTheme: const TextTheme(
-            titleLarge: TextStyle(fontFamily: 'Inter', color: Colors.black, fontWeight: FontWeight.bold, fontSize: 34),
-            titleMedium: TextStyle(fontFamily: 'Inter', color: Colors.black, fontWeight: FontWeight.normal, fontSize: 18),
-            labelMedium: TextStyle(fontFamily: 'Inter', color: Color.fromRGBO(51, 49, 56, 1), fontWeight: FontWeight.normal, fontSize: 16),
-            labelSmall: TextStyle(fontFamily: 'Inter', color: Color.fromRGBO(166, 166, 166, 1), fontWeight: FontWeight.w600, fontSize: 14),
-            headlineMedium: TextStyle(fontFamily: 'Inter', color: Color.fromRGBO(166, 166, 166, 1), fontWeight: FontWeight.w600, fontSize: 18),
-            headlineSmall: defaultHeadlineSmall,
-            bodyMedium: lightBodyMedium,
-            bodySmall: lightBodySmall,
-            displayMedium: TextStyle(fontFamily: 'Inter', color: Colors.black, fontWeight: FontWeight.w600, fontSize: 18),
-            displaySmall: TextStyle(fontFamily: 'Inter', color: Color.fromRGBO(166, 166, 166, 1), fontWeight: FontWeight.w600, fontSize: 14),
-          ),
-          inputDecorationTheme: const InputDecorationTheme(
-            labelStyle: defaultLabelStyle,
-            outlineBorder: BorderSide(color: Colors.grey, width: 1.2),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Color(0xFFF7887C), width: 1.2)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Colors.grey, width: 1.2)),
-            errorBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Color(0xFFED1C24), width: 1.2)),
-            errorStyle: TextStyle(fontFamily: 'Inter', color: Color(0xFFED1C24), fontWeight: FontWeight.w400, fontSize: 12),
-          ),
-        ),
-        darkTheme: ThemeData(
-          brightness: Brightness.dark,
-          scaffoldBackgroundColor: const Color(0xFF222225),
-          primaryColor: const Color(0xFFED1C24),
-          dividerTheme: const DividerThemeData(color: Color.fromARGB(255, 56, 53, 53)),
-          appBarTheme: const AppBarTheme(backgroundColor: Color(0xFF222225)),
-          // Garantir que os estilos de texto nunca sejam nulos
-          textTheme: const TextTheme(
-            titleLarge: TextStyle(fontFamily: 'Inter', color: Colors.white, fontWeight: FontWeight.bold, fontSize: 34),
-            titleMedium: TextStyle(fontFamily: 'Inter', color: Colors.white, fontWeight: FontWeight.normal, fontSize: 18),
-            labelMedium: TextStyle(fontFamily: 'Inter', color: Color.fromRGBO(231, 230, 233, 1), fontWeight: FontWeight.normal, fontSize: 16),
-            labelSmall: TextStyle(fontFamily: 'Inter', color: Color.fromRGBO(203, 203, 204, 1), fontWeight: FontWeight.w600, fontSize: 14),
-            headlineMedium: TextStyle(fontFamily: 'Inter', color: Color.fromRGBO(203, 203, 204, 1), fontWeight: FontWeight.w600, fontSize: 18),
-            headlineSmall: TextStyle(fontFamily: 'Inter', color: Color.fromARGB(255, 218, 218, 218), fontWeight: FontWeight.w600, fontSize: 16, overflow: TextOverflow.visible),
-            bodyMedium: darkBodyMedium,
-            bodySmall: darkBodySmall,
-            displayMedium: TextStyle(fontFamily: 'Inter', color: Colors.white, fontWeight: FontWeight.w600, fontSize: 18),
-            displaySmall: TextStyle(fontFamily: 'Inter', color: Color.fromRGBO(166, 166, 166, 1), fontWeight: FontWeight.w600, fontSize: 14),
-          ),
-          inputDecorationTheme: const InputDecorationTheme(
-            labelStyle: TextStyle(fontFamily: 'Inter', color: Color.fromARGB(255, 233, 233, 233), fontWeight: FontWeight.normal, fontSize: 16),
-            prefixIconColor: Color.fromARGB(255, 233, 233, 233),
-            outlineBorder: BorderSide(color: Color(0xFF3E3F44), width: 1.2),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Color.fromARGB(255, 145, 32, 20), width: 1.2)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Color(0xFF3E3F44), width: 1.2)),
-            errorBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Color(0xFFED1C24), width: 1.2)),
-            errorStyle: TextStyle(fontFamily: 'Inter', color: Color(0xFFED1C24), fontWeight: FontWeight.w400, fontSize: 12),
-          ),
-        ),
-        themeMode: settingsController.themeMode,
-        routerConfig: appRouter.router,
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [
-          Locale('pt', 'BR'),
-          Locale('en', 'US'),
-        ],
+      child: ListenableBuilder(
+        listenable: settingsController,
+        builder: (context, _) {
+          return MaterialApp.router(
+            title: 'Vitalink',
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              brightness: Brightness.light,
+              scaffoldBackgroundColor: Colors.white,
+              primaryColor: const Color(0xFFED1C24),
+              dividerTheme: const DividerThemeData(color: Colors.grey),
+              appBarTheme: const AppBarTheme(backgroundColor: Colors.white),
+              // Garantir que os estilos de texto nunca sejam nulos
+              textTheme: const TextTheme(
+                titleLarge: TextStyle(fontFamily: 'Inter', color: Colors.black, fontWeight: FontWeight.bold, fontSize: 34),
+                titleMedium: TextStyle(fontFamily: 'Inter', color: Colors.black, fontWeight: FontWeight.normal, fontSize: 18),
+                labelMedium: TextStyle(fontFamily: 'Inter', color: Color.fromRGBO(51, 49, 56, 1), fontWeight: FontWeight.normal, fontSize: 16),
+                labelSmall: TextStyle(fontFamily: 'Inter', color: Color.fromRGBO(166, 166, 166, 1), fontWeight: FontWeight.w600, fontSize: 14),
+                headlineMedium: TextStyle(fontFamily: 'Inter', color: Color.fromRGBO(166, 166, 166, 1), fontWeight: FontWeight.w600, fontSize: 18),
+                headlineSmall: defaultHeadlineSmall,
+                bodyMedium: lightBodyMedium,
+                bodySmall: lightBodySmall,
+                displayMedium: TextStyle(fontFamily: 'Inter', color: Colors.black, fontWeight: FontWeight.w600, fontSize: 18),
+                displaySmall: TextStyle(fontFamily: 'Inter', color: Color.fromRGBO(166, 166, 166, 1), fontWeight: FontWeight.w600, fontSize: 14),
+              ),
+              inputDecorationTheme: const InputDecorationTheme(
+                labelStyle: defaultLabelStyle,
+                outlineBorder: BorderSide(color: Colors.grey, width: 1.2),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Color(0xFFF7887C), width: 1.2)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Colors.grey, width: 1.2)),
+                errorBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Color(0xFFED1C24), width: 1.2)),
+                errorStyle: TextStyle(fontFamily: 'Inter', color: Color(0xFFED1C24), fontWeight: FontWeight.w400, fontSize: 12),
+              ),
+            ),
+            darkTheme: ThemeData(
+              brightness: Brightness.dark,
+              scaffoldBackgroundColor: const Color(0xFF222225),
+              primaryColor: const Color(0xFFED1C24),
+              dividerTheme: const DividerThemeData(color: Color.fromARGB(255, 56, 53, 53)),
+              appBarTheme: const AppBarTheme(backgroundColor: Color(0xFF222225)),
+              textTheme: const TextTheme(
+                titleLarge: TextStyle(fontFamily: 'Inter', color: Colors.white, fontWeight: FontWeight.bold, fontSize: 34),
+                titleMedium: TextStyle(fontFamily: 'Inter', color: Colors.white, fontWeight: FontWeight.normal, fontSize: 18),
+                labelMedium: TextStyle(fontFamily: 'Inter', color: Color.fromRGBO(231, 230, 233, 1), fontWeight: FontWeight.normal, fontSize: 16),
+                labelSmall: TextStyle(fontFamily: 'Inter', color: Color.fromRGBO(203, 203, 204, 1), fontWeight: FontWeight.w600, fontSize: 14),
+                headlineMedium: TextStyle(fontFamily: 'Inter', color: Color.fromRGBO(203, 203, 204, 1), fontWeight: FontWeight.w600, fontSize: 18),
+                headlineSmall: TextStyle(fontFamily: 'Inter', color: Color.fromARGB(255, 218, 218, 218), fontWeight: FontWeight.w600, fontSize: 16, overflow: TextOverflow.visible),
+                bodyMedium: darkBodyMedium,
+                bodySmall: darkBodySmall,
+                displayMedium: TextStyle(fontFamily: 'Inter', color: Colors.white, fontWeight: FontWeight.w600, fontSize: 18),
+                displaySmall: TextStyle(fontFamily: 'Inter', color: Color.fromRGBO(166, 166, 166, 1), fontWeight: FontWeight.w600, fontSize: 14),
+              ),
+              inputDecorationTheme: const InputDecorationTheme(
+                labelStyle: TextStyle(fontFamily: 'Inter', color: Color.fromARGB(255, 233, 233, 233), fontWeight: FontWeight.normal, fontSize: 16),
+                prefixIconColor: Color.fromARGB(255, 233, 233, 233),
+                outlineBorder: BorderSide(color: Color(0xFF3E3F44), width: 1.2),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Color.fromARGB(255, 145, 32, 20), width: 1.2)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Color(0xFF3E3F44), width: 1.2)),
+                errorBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Color(0xFFED1C24), width: 1.2)),
+                errorStyle: TextStyle(fontFamily: 'Inter', color: Color(0xFFED1C24), fontWeight: FontWeight.w400, fontSize: 12),
+              ),
+            ),
+            themeMode: settingsController.themeMode,
+            routerConfig: appRouter.router,
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('pt', 'BR'),
+              Locale('en', 'US'),
+            ],
+          );
+        },
       ),
     ),
   );
