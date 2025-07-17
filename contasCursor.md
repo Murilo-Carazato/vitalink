@@ -1,4 +1,4 @@
-f7yzinzrdb@emailestudante.com.br *usando
+f7yzinzrdb@emailestudante.com.br *acabou
 T26LGqAmKPaSW2H
 
 u196dv5pzy@emailestudante.com.br *acabou
@@ -7,10 +7,10 @@ mBLkWGP5imGLGkJ
 liuf7jf0oh@emailestudante.com.br *acabou
 '123qweasdzxc123*
 
-ewvrssniu1@emailestudante.com.br
+ewvrssniu1@emailestudante.com.br *acabou
 qzmx6EPEvmDuvUc
 
-y9v16xyq2g@emailestudante.com.br
+y9v16xyq2g@emailestudante.com.br *usando(de erro de mtas contas por máquina)
 sMbe6AKctQ7MAYt
 
 1qcpu7z9q2@emailestudante.com.br
