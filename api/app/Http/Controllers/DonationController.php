@@ -7,7 +7,10 @@ use App\Http\Requests\DonationUpdateRequest;
 use App\Http\Requests\DonationConfirmRequest;
 use App\Services\DonationService;
 use App\Services\PaginateAndFilter;
+use App\Models\Donation;
+use App\Enums\DonationStatus;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Cache;
 
@@ -41,17 +44,53 @@ class DonationController extends Controller
      */
     public function store(DonationStoreRequest $request)
     {
+        // Rate limiting: max 3 donation requests per day per user
+        $maxAttempts = 3;
+        $key = 'donation_attempts_' . $request->user()->id;
+        
+        if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
+            $seconds = RateLimiter::availableIn($key);
+            return response()->json([
+                'message' => 'Muitas tentativas. Por favor, tente novamente em ' . ceil($seconds / 60) . ' minutos.'
+            ], Response::HTTP_TOO_MANY_REQUESTS);
+        }
+
+        // Increment the rate limiter
+        RateLimiter::hit($key, 24 * 60 * 60); // 24 hours
+
+        // Check for existing active donations
+        $hasActiveDonation = Donation::where('user_id', $request->user()->id)
+            ->whereIn('status', [DonationStatus::SCHEDULED, DonationStatus::CONFIRMED])
+            ->whereDate('donation_date', '>=', now())
+            ->exists();
+
+        if ($hasActiveDonation) {
+            return response()->json([
+                'message' => 'Você já possui uma doação agendada ou confirmada.'
+            ], Response::HTTP_CONFLICT);
+        }
+
         $data = $request->validated();
         $data['user_id'] = $request->user()->id;
         
-        $donation = $this->donationService->createDonation($data);
+        try {
+            $donation = $this->donationService->createDonation($data);
 
-        return response()->json([
-            'message' => 'Doação agendada com sucesso',
-            'data' => $donation->load('bloodcenter'),
-            'donation_token' => $donation->donation_token,
-            'confirmation_token' => $donation->confirmation_token,
-        ], Response::HTTP_CREATED);
+            return response()->json([
+                'message' => 'Doação agendada com sucesso',
+                'data' => $donation->load('bloodcenter'),
+                'donation_token' => $donation->donation_token,
+                'confirmation_token' => $donation->confirmation_token,
+            ], Response::HTTP_CREATED);
+            
+        } catch (\Exception $e) {
+            // Decrement rate limiter on error
+            RateLimiter::clear($key);
+            
+            return response()->json([
+                'message' => 'Erro ao agendar doação. Por favor, tente novamente.'
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -192,7 +231,7 @@ class DonationController extends Controller
     }
 
     /**
-     * Complete donation (user can only complete their own).
+     * Complete donation (only blood center staff can complete).
      */
     public function complete(Request $request, string $token)
     {
@@ -204,10 +243,10 @@ class DonationController extends Controller
             ], Response::HTTP_NOT_FOUND);
         }
 
-        // Check ownership
-        if ($donation->user_id !== $request->user()->id) {
+        // Only blood center staff can complete donations
+        if (!$request->user()->isAdmin() || !$request->user()->canManageBloodCenter($donation->bloodcenter)) {
             return response()->json([
-                'message' => 'Acesso não autorizado'
+                'message' => 'Apenas funcionários do hemocentro podem confirmar doações'
             ], Response::HTTP_FORBIDDEN);
         }
 
