@@ -26,12 +26,27 @@ Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->
 Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.update');
 
 // Email verification routes
-Route::post('/email/verification-notification', [VerificationController::class, 'send'])->name('verification.send');
-Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])->name('verification.verify');
-Route::get('/email/verify', [VerificationController::class, 'notice'])->name('verification.notice');
+// Rotas de verificação de email (limite apenas para envio, não para verificações) 
+Route::middleware('throttle:6,1')->group(function () {
+    // Enviar notificação de verificação
+    Route::post('/email/verification-notification', [VerificationController::class, 'send'])
+        ->middleware(['auth:sanctum'])
+        ->name('api.verification.send');
+        
+    // Verificar e-mail com token
+    Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
+        
+        ->name('api.verification.verify');
+        
+    // Página de notificação de verificação
+    Route::get('/email/verify', [VerificationController::class, 'notice'])
+        ->name('api.verification.notice');
+});
 
-// Adicionar a rota para verificar o status de verificação do email
-Route::get('/user/check-verification-status', [App\Http\Controllers\VerificationController::class, 'checkStatus']);
+// Verificar status de verificação
+Route::get('/user/check-verification-status', [VerificationController::class, 'checkStatus'])
+    ->middleware('throttle:60,1')
+    ->name('verification.status');
 
 // ------------------ USER MANAGEMENT  ------------------
 Route::middleware(['auth:sanctum'])->group(function () {
