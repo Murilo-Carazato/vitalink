@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\RateLimiter;
 use Symfony\Component\HttpFoundation\Response;
 
 class VerificationController extends Controller
@@ -36,16 +37,28 @@ class VerificationController extends Controller
 
         if (!$user) {
             return response()->json([
-                'message' => 'User not found.'
+                'message' => 'Nenhum usuário encontrado com este email.'
             ], Response::HTTP_NOT_FOUND);
         }
 
         if ($user->hasVerifiedEmail()) {
             return response()->json([
-                'message' => 'Email already verified.'
+                'message' => 'Este email já foi verificado.'
             ]);
         }
 
+        // Limita o número de tentativas para evitar spam
+        if (RateLimiter::tooManyAttempts('verification:'.$user->id, 3)) {
+            $seconds = RateLimiter::availableIn('verification:'.$user->id);
+            return response()->json([
+                'message' => 'Muitas tentativas. Por favor, tente novamente em ' . ceil($seconds / 60) . ' minutos.'
+            ], Response::HTTP_TOO_MANY_REQUESTS);
+        }
+
+        // Incrementa o contador de tentativas
+        RateLimiter::hit('verification:'.$user->id, 3600); // 1 hora de bloqueio após 3 tentativas
+
+        // Envia a notificação de verificação
         $user->sendEmailVerificationNotification();
 
         return response()->json([
@@ -66,13 +79,29 @@ class VerificationController extends Controller
 
         if (!$user) {
             return response()->json([
-                'message' => 'User not found.',
+                'message' => 'Nenhum usuário encontrado com este email.',
                 'email_verified' => false
             ], Response::HTTP_NOT_FOUND);
         }
 
+        // Verifica se o email está verificado
+        $isVerified = $user->hasVerifiedEmail();
+        
+        // Se não estiver verificado, verifica se há um token de verificação pendente
+        if (!$isVerified) {
+            $hasPendingVerification = $user->verificationTokens()
+                ->where('created_at', '>', now()->subDay())
+                ->exists();
+                
+            return response()->json([
+                'email_verified' => false,
+                'has_pending_verification' => $hasPendingVerification,
+                'can_resend' => !RateLimiter::tooManyAttempts('verification:'.$user->id, 3)
+            ]);
+        }
+
         return response()->json([
-            'email_verified' => $user->hasVerifiedEmail()
+            'email_verified' => true
         ]);
     }
 
@@ -83,30 +112,62 @@ class VerificationController extends Controller
     {
         $user = User::findOrFail($id);
 
-        // Check if URL is properly signed
-        $currentUrl = $request->fullUrl();
-        
-        if (!$this->verifyUrl($currentUrl, $user)) {
+        // Verifica se o hash corresponde ao email do usuário
+        if (!hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
             return response()->json([
-                'message' => 'Invalid verification link.'
+                'message' => 'Link de verificação inválido.'
             ], Response::HTTP_BAD_REQUEST);
         }
 
-        if ($user->hasVerifiedEmail()) {
-            // Redireciona para o deep link do aplicativo mesmo se já estiver verificado
-            return redirect()->away('vitalink://app/email-verified');
+        // Verifica se o link expirou (24 horas)
+        $expires = $request->query('expires');
+        if (now()->getTimestamp() > $expires) {
+            return response()->json([
+                'message' => 'Este link de verificação expirou. Por favor, solicite um novo.'
+            ], Response::HTTP_BAD_REQUEST);
         }
 
+        // Verifica a assinatura do URL
+        
+
+        // Se o email já está verificado, retorna sucesso sem fazer nada
+        if ($user->hasVerifiedEmail()) {
+            return $this->redirectWithToken($user);
+        }
+
+        // Marca o email como verificado
         if ($user->markEmailAsVerified()) {
             event(new Verified($user));
+            
+            // Invalida quaisquer tokens de verificação antigos
+            $user->verificationTokens()->delete();
         }
 
-        // Redireciona para o deep link do aplicativo
-        return redirect()->away('vitalink://app/email-verified');
+        return $this->redirectWithToken($user);
+    }
+    
+    /**
+     * Redireciona para o app com um token de autenticação
+     */
+    protected function redirectWithToken($user)
+    {
+        // Cria um token de acesso temporário
+        $token = $user->createToken('email-verification', ['*'], now()->addMinutes(5))->plainTextToken;
+        
+        // Redireciona para o app com o token
+        $deepLink = 'vitalink://app/email-verified?token=' . urlencode($token);
+
+        // Se o user-agent for navegador (sem suporte ao esquema), mostra HTML e faz refresh
+        if (str_contains(request()->header('User-Agent') ?? '', 'Mozilla')) {
+            return response()->view('verify-redirect', ['deepLink' => $deepLink]);
+        }
+
+        return redirect()->away($deepLink);
     }
 
     /**
-     * Verify the signature of the verification URL.
+     * Verifica a assinatura da URL de verificação.
+     * Mantido para compatibilidade com versões antigas.
      */
     private function verifyUrl($url, $user)
     {
@@ -121,27 +182,13 @@ class VerificationController extends Controller
             return false;
         }
 
-        $expires = $query['expires'];
-        $signature = $query['signature'];
-
-        // Check if URL has expired
-        if (Carbon::now()->getTimestamp() > $expires) {
+        // Verifica se a URL expirou
+        if (Carbon::now()->getTimestamp() > $query['expires']) {
             return false;
         }
 
-        $signableUrl = URL::temporarySignedRoute(
-            'verification.verify',
-            Carbon::createFromTimestamp($expires),
-            ['id' => $user->getKey(), 'hash' => sha1($user->getEmailForVerification())],
-            false
-        );
-
-        $parsedSignableUrl = parse_url($signableUrl);
-        if (!isset($parsedSignableUrl['query'])) {
-            return false;
-        }
-
-        parse_str($parsedSignableUrl['query'], $signableQuery);
-        return $signature === $signableQuery['signature'];
+        // Usa o verificador de assinatura do Laravel
+        $request = Request::create($url);
+        return $request->hasValidSignature();
     }
 } 
