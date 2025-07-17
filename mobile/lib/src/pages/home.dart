@@ -25,6 +25,7 @@ import 'package:vitalink/src/components/custom_dialog.dart';
 import 'package:go_router/go_router.dart';
 
 //TODO: melhorar o layout, código, q mais?
+//mostrar erro de "usuário nao verificou o email"
 
 class HomePage extends StatefulWidget {
   final NearbyStore nearbyStore;
