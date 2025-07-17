@@ -12,7 +12,9 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasFactory, Notifiable, HasApiTokens {
+        HasApiTokens::createToken as baseCreateToken;
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -20,10 +22,8 @@ class User extends Authenticatable implements MustVerifyEmail
      * @var array<int, string>
      */
     protected $fillable = [
-        'name',
         'email',
         'password',
-        'bloodcenter_id',
         'isadmin',
         'email_verified_at',
         'last_login_at',
@@ -55,6 +55,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'last_login_at' => 'datetime',
             'is_active' => 'boolean',
+            'isadmin' => 'string',
         ];
     }
 
@@ -143,9 +144,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
             'email' => $this->email,
-            'bloodcenter_id' => $this->bloodcenter_id,
             'isadmin' => $this->isadmin,
         ];
     }
@@ -156,5 +155,44 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isActiveAndVerified(): bool
     {
         return $this->is_active && $this->hasVerifiedEmail();
+    }
+
+    /**
+     * Get the verification tokens for the user.
+     */
+    public function verificationTokens()
+    {
+        return $this->hasMany(\Laravel\Sanctum\PersonalAccessToken::class, 'tokenable_id')
+            ->where('name', 'email-verification');
+    }
+    
+    /**
+     * Create a new personal access token for the user.
+     *
+     * @param  string  $name
+     * @param  array  $abilities
+     * @param  \DateTimeInterface|null  $expiresAt
+     * @return \Laravel\Sanctum\NewAccessToken
+     */
+    public function createToken(string $name, array $abilities = ['*'], \DateTimeInterface $expiresAt = null)
+    {
+        // Remove tokens antigos do mesmo tipo criados há mais de 1 h
+        $this->tokens()
+            ->where('name', $name)
+            ->where('created_at', '<', now()->subHour())
+            ->delete();
+
+        // Chama a implementação original do trait
+        return $this->baseCreateToken($name, $abilities, $expiresAt);
+    }
+    
+    /**
+     * Get the email address that should be used for verification.
+     *
+     * @return string
+     */
+    public function getEmailForVerification()
+    {
+        return $this->email;
     }
 }
