@@ -87,16 +87,42 @@ class DonationService
     /**
      * Confirm a donation.
      */
-    public function confirmDonation(Donation $donation, array $data): Donation
+    public function confirmDonation(Donation $donation, array $data, User $staff): Donation
     {
-        $donation->update($data);
-        
+        // Only allow confirming future donations
+        if ($data['status'] === DonationStatus::CONFIRMED->value && $donation->donation_date->isPast()) {
+            throw new \Exception('Não é possível confirmar uma doação passada.');
+        }
+
+        // Verify staff has permission to manage this blood center
+        if (!$staff->canManageBloodCenter($donation->bloodcenter)) {
+            throw new \Exception('Acesso não autorizado a este hemocentro.');
+        }
+
+        // Update donation with staff info and notes
+        $donation->update([
+            'status' => $data['status'],
+            'confirmed_by' => $staff->id,
+            'confirmed_at' => now(),
+            'staff_notes' => $data['staff_notes'] ?? null,
+            'donation_time' => $data['donation_time'] ?? $donation->donation_time,
+        ]);
+
         // If status is confirmed, mark as confirmed
-        if ($data['status'] === DonationStatus::CONFIRMED) {
+        if ($data['status'] === DonationStatus::CONFIRMED->value) {
             $donation->markAsConfirmed();
+            
+            // Invalidate any other pending confirmations
+            Donation::where('user_id', $donation->user_id)
+                ->where('id', '!=', $donation->id)
+                ->whereIn('status', [DonationStatus::SCHEDULED, DonationStatus::PENDING])
+                ->update(['status' => DonationStatus::CANCELLED]);
+                
+            // Send confirmation notification to donor
+            $this->sendConfirmationNotification($donation);
         }
         
-        return $donation;
+        return $donation->refresh();
     }
 
     /**
