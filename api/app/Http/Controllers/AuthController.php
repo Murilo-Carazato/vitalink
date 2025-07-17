@@ -94,7 +94,6 @@ class AuthController extends Controller
         $user = User::updateOrCreate(
             ['email' => $firebaseUser->email],
             [
-                'name' => $firebaseUser->displayName ?? 'Usuário Google',
                 'password' => Hash::make(Str::random(24)),
                 'isadmin' => 'user', // Default to regular user
                 'email_verified_at' => now(), // Auto-verify Google users
