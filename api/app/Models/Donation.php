@@ -30,6 +30,8 @@ class Donation extends Model
         'reminder_sent_at',
         'confirmation_token',
         'confirmation_expires_at',
+        'confirmed_by',
+        'confirmed_at',
     ];
 
     protected $casts = [
@@ -37,6 +39,7 @@ class Donation extends Model
         'donation_time' => 'datetime:H:i',
         'reminder_sent_at' => 'datetime',
         'confirmation_expires_at' => 'datetime',
+        'confirmed_at' => 'datetime',
         'is_first_time_donor' => 'boolean',
         'reminder_sent' => 'boolean',
         'blood_type' => BloodType::class,
@@ -70,6 +73,12 @@ class Donation extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+    
+    // Relacionamento com o funcionário que confirmou a doação
+    public function confirmedBy()
+    {
+        return $this->belongsTo(User::class, 'confirmed_by');
     }
 
     // Gera token único para a doação
