@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class UserService
@@ -24,16 +25,22 @@ class UserService
         $data['isadmin'] = $data['isadmin'] ?? 'user'; // Default para usuário comum se não especificado
         $data['email_verified_at'] = null; // Garante que o email não está verificado
 
-        $user = User::create($data);
-        
-        // Envia o email de verificação explicitamente (custom notification)
-        $user->sendEmailVerificationNotification();
-
-        return [
-            'user' => $user,
-            'token' => $user->createToken($data['email'])->plainTextToken,
-            'email_verified' => false
-        ];
+        return DB::transaction(function () use ($data) {
+            $user = User::create($data);
+            
+            $result = [
+                'user' => $user,
+                'token' => $user->createToken($data['email'])->plainTextToken,
+                'email_verified' => false
+            ];
+            
+            // Envia o email de verificação após o commit da transação
+            DB::afterCommit(function () use ($user) {
+                $user->sendEmailVerificationNotification();
+            });
+            
+            return $result;
+        });
     }
 
     public function getUserById(string $id): ?User
