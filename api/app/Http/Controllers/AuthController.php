@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\SecurityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\RateLimiter;
 use Kreait\Firebase\Contract\Auth as FirebaseAuth;
@@ -76,19 +78,82 @@ class AuthController extends Controller
         try {
             $verifiedIdToken = $this->firebaseAuth->verifyIdToken($request->idToken);
         } catch (\Exception $e) {
+            SecurityLogService::logSecurityViolation('invalid_firebase_token', [
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'error' => $e->getMessage()
+            ]);
+            
             return response()->json([
-                'message' => 'Token do Firebase inválido: ' . $e->getMessage()
+                'message' => 'Token do Firebase inválido'
             ], Response::HTTP_UNAUTHORIZED);
         }
 
         $uid = $verifiedIdToken->claims()->get('sub');
-        $firebaseUser = $this->firebaseAuth->getUser($uid);
-
-        // Check if email is verified in Firebase
-        if (!$firebaseUser->emailVerified) {
+        $email = $verifiedIdToken->claims()->get('email');
+        $emailVerified = $verifiedIdToken->claims()->get('email_verified');
+        $issuer = $verifiedIdToken->claims()->get('iss');
+        $audience = $verifiedIdToken->claims()->get('aud');
+        
+        // Additional security validations
+        if (!$email || !$emailVerified) {
+            SecurityLogService::logSecurityViolation('unverified_google_email', [
+                'email' => $email,
+                'email_verified' => $emailVerified
+            ]);
+            
             return response()->json([
-                'message' => 'Por favor, verifique seu email no Google antes de continuar.'
+                'message' => 'Email não verificado no Google'
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+        
+        // Validate issuer and audience
+        if (!str_contains($issuer, 'accounts.google.com')) {
+            SecurityLogService::logSecurityViolation('invalid_token_issuer', [
+                'issuer' => $issuer
+            ]);
+            
+            return response()->json([
+                'message' => 'Token inválido'
+            ], Response::HTTP_UNAUTHORIZED);
+        }
+        
+        // Check token expiration
+        $exp = $verifiedIdToken->claims()->get('exp');
+        if ($exp && $exp < time()) {
+            SecurityLogService::logSecurityViolation('expired_google_token', [
+                'exp' => $exp,
+                'current_time' => time()
+            ]);
+            
+            return response()->json([
+                'message' => 'Token expirado'
+            ], Response::HTTP_UNAUTHORIZED);
+        }
+
+        try {
+            $firebaseUser = $this->firebaseAuth->getUser($uid);
+        } catch (\Exception $e) {
+            SecurityLogService::logSecurityViolation('firebase_user_not_found', [
+                'uid' => $uid,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'message' => 'Usuário não encontrado'
+            ], Response::HTTP_UNAUTHORIZED);
+        }
+
+        // Check if account is disabled
+        if ($firebaseUser->disabled) {
+            SecurityLogService::logSecurityViolation('disabled_firebase_account', [
+                'uid' => $uid,
+                'email' => $firebaseUser->email
+            ]);
+            
+            return response()->json([
+                'message' => 'Conta desativada'
+            ], Response::HTTP_FORBIDDEN);
         }
 
         $user = User::updateOrCreate(
@@ -103,12 +168,66 @@ class AuthController extends Controller
 
         // Update last login
         $user->updateLastLogin();
+        
+        // Log successful Google login
+        SecurityLogService::logAuthEvent('google_login_success', [
+            'user_id' => $user->id,
+            'firebase_uid' => $uid
+        ]);
+
+        // Create token with expiration
+        $token = $user->createToken(
+            'google_auth_token',
+            ['*'],
+            now()->addHours(24)
+        );
 
         return response()->json([
             'message' => 'Login com Google realizado com sucesso',
-            'token' => $user->createToken($firebaseUser->email)->plainTextToken,
+            'token' => $token->plainTextToken,
             'user' => $user->getPublicProfile(),
         ], Response::HTTP_OK);
+    }
+
+    /**
+     * Check if user has a new token available and return it
+     */
+    public function checkTokenRefresh(Request $request)
+    {
+        $user = $request->user();
+        $cacheKey = "new_token_{$user->id}";
+        
+        $newTokenData = Cache::get($cacheKey);
+        
+        if ($newTokenData) {
+            // Clear the cache after retrieving
+            Cache::forget($cacheKey);
+            
+            return response()->json([
+                'token_refreshed' => true,
+                'access_token' => $newTokenData['token'],
+                'expires_at' => $newTokenData['expires_at'],
+                'created_at' => $newTokenData['created_at']
+            ]);
+        }
+        
+        return response()->json(['token_refreshed' => false]);
+    }
+
+    /**
+     * Logout user (revoke token)
+     */
+    public function logout(Request $request)
+    {
+        $user = $request->user();
+        
+        // Revoke current token
+        $request->user()->currentAccessToken()->delete();
+        
+        // Clear any pending refresh tokens
+        Cache::forget("new_token_{$user->id}");
+        
+        return response()->json(['message' => 'Token revogado com sucesso'], Response::HTTP_OK);
     }
 
     /**
