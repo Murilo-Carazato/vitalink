@@ -13,10 +13,10 @@ qzmx6EPEvmDuvUc
 y9v16xyq2g@emailestudante.com.br *usando(de erro de mtas contas por máquina)
 sMbe6AKctQ7MAYt
 
-1qcpu7z9q2@emailestudante.com.br
+1qcpu7z9q2@emailestudante.com.br *pulei
 vGxDP6c5Q9tXwMp
 
-4bfe3rqn40@emailestudante.com.br
+4bfe3rqn40@emailestudante.com.br *usando
 5iTmestwiXvCXDc
 
 dphns9nycm@emailestudante.com.br
