@@ -19,6 +19,16 @@ Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
 });
 
 // ------------------ AUTHENTICATION  ------------------
+Route::post('/register', [AuthController::class, 'register'])->name('register');
+Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/google-login', [AuthController::class, 'handleGoogleCallback'])->name('google.login');
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum')->name('logout');
+
+// Token refresh routes
+Route::get('/auth/token/check', [AuthController::class, 'checkTokenRefresh'])
+    ->middleware('auth:sanctum')
+    ->name('token.check');
+
 Route::post('/user/login', [AuthController::class, 'store'])->name('user.login');
 Route::post('/user/register', [UserController::class, 'store'])->name('user.store');
 Route::post('/auth/google', [AuthController::class, 'handleGoogleCallback'])->name('google.login');
@@ -26,7 +36,14 @@ Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->
 Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.update');
 
 // Email verification routes
-// Rotas de verificação de email (limite apenas para envio, não para verificações) 
+Route::post('/email/verification-notification', [AuthController::class, 'sendEmailVerificationNotification'])
+    ->middleware(['auth:sanctum', 'throttle:6,1'])
+    ->name('verification.send');
+
+Route::post('/email/verify', [AuthController::class, 'verifyEmail'])
+    ->middleware(['auth:sanctum'])
+    ->name('verification.verify');
+
 Route::middleware('throttle:6,1')->group(function () {
     // Enviar notificação de verificação
     Route::post('/email/verification-notification', [VerificationController::class, 'send'])
@@ -75,6 +92,20 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/news/{id}', [NewsController::class, 'destroy'])->name('news.destroy');
 });
 
+// ------------------ BLOOD CENTER API  ------------------
+// API específica para hemocentros sem frontend
+Route::prefix('blood-center-api')->group(function () {
+    Route::post('/auth', [App\Http\Controllers\Api\BloodCenterApiController::class, 'authenticate'])->name('blood-center-api.auth');
+    
+    Route::middleware(['auth:sanctum', 'verified'])->group(function () {
+        Route::post('/donations/today', [App\Http\Controllers\Api\BloodCenterApiController::class, 'getTodayDonations'])->name('blood-center-api.donations.today');
+        Route::post('/donations/{donationToken}/confirm', [App\Http\Controllers\Api\BloodCenterApiController::class, 'confirmDonation'])->name('blood-center-api.donations.confirm');
+        Route::post('/donations/{donationToken}/complete', [App\Http\Controllers\Api\BloodCenterApiController::class, 'completeDonation'])->name('blood-center-api.donations.complete');
+        Route::post('/donations/{donationToken}/medical-notes', [App\Http\Controllers\Api\BloodCenterApiController::class, 'getMedicalNotes'])->name('blood-center-api.donations.medical-notes');
+        Route::post('/statistics', [App\Http\Controllers\Api\BloodCenterApiController::class, 'getStatistics'])->name('blood-center-api.statistics');
+    });
+});
+
 // ------------------ DONATIONS  ------------------
 
 // Public routes (no authentication required)
@@ -82,10 +113,20 @@ Route::get('/donations/{token}', [DonationController::class, 'show'])->name('don
 Route::get('/donations/confirm/{token}', [DonationController::class, 'getByConfirmationToken'])->name('donations.confirm');
 
 // Donor routes (require authentication and email verification)
-Route::middleware(['auth:sanctum', 'verified'])->group(function () {
-    Route::post('/donations/schedule', [DonationController::class, 'store'])->name('donations.store');
+Route::middleware(['auth:sanctum', 'verified', 'refresh.token'])->group(function () {
+    // Donation scheduling requires interval validation
+    Route::post('/donations/schedule', [DonationController::class, 'store'])
+        ->middleware('validate.donation.interval')
+        ->name('donations.store');
+    
     Route::put('/donations/{token}', [DonationController::class, 'update'])->name('donations.update');
     Route::post('/donations/{token}/cancel', [DonationController::class, 'cancel'])->name('donations.cancel');
+    Route::get('/donations/next', [DonationController::class, 'getNextDonation'])->name('donations.next');
+    Route::get('/donations/history', [DonationController::class, 'getDonationsForUser'])->name('donations.history');
+});
+
+// Blood center staff routes (require admin authentication)
+Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/donations/{token}/complete', [DonationController::class, 'complete'])->name('donations.complete');
 });
 
