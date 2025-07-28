@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Enums\BloodType;
 use App\Enums\DonationStatus;
+use App\Services\EncryptionService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -28,6 +30,11 @@ class Donation extends Model
         'staff_notes',
         'reminder_sent',
         'reminder_sent_at',
+        'encrypted_medical_notes',
+        'medical_notes_hash',
+        'encrypted_health_questions',
+        'health_questions_hash',
+        'encrypted_at',
         'confirmation_token',
         'confirmation_expires_at',
         'confirmed_by',
@@ -205,6 +212,72 @@ class Donation extends Model
                       ->with('bloodcenter')
                       ->first();
         });
+    }
+
+    // Métodos de criptografia automática para campos sensíveis
+    public function setMedicalNotesAttribute(?string $value): void
+    {
+        if ($value) {
+            $this->attributes['encrypted_medical_notes'] = EncryptionService::encryptMedicalNotes($value);
+            $this->attributes['medical_notes_hash'] = EncryptionService::hashForSearch($value);
+            $this->attributes['encrypted_at'] = now();
+            $this->attributes['medical_notes'] = null; // Não armazenar texto plano
+        }
+    }
+
+    public function getMedicalNotesAttribute(): ?string
+    {
+        return EncryptionService::decryptMedicalNotes($this->encrypted_medical_notes);
+    }
+
+    public function setHealthQuestionsAttribute(?string $value): void
+    {
+        if ($value) {
+            $this->attributes['encrypted_health_questions'] = EncryptionService::encryptSensitiveData($value);
+            $this->attributes['health_questions_hash'] = EncryptionService::hashForSearch($value);
+            $this->attributes['encrypted_at'] = now();
+        }
+    }
+
+    public function getHealthQuestionsAttribute(): ?string
+    {
+        return EncryptionService::decryptSensitiveData($this->encrypted_health_questions);
+    }
+
+    // Busca por notas médicas usando hash
+    public static function findByMedicalNotesHash(string $hash): Collection
+    {
+        return self::where('medical_notes_hash', $hash)->get();
+    }
+
+    // Busca por questões de saúde usando hash
+    public static function findByHealthQuestionsHash(string $hash): Collection
+    {
+        return self::where('health_questions_hash', $hash)->get();
+    }
+
+    // Verifica se tem dados criptografados
+    public function hasEncryptedData(): bool
+    {
+        return !empty($this->encrypted_medical_notes) || !empty($this->encrypted_health_questions);
+    }
+
+    // Exporta dados para auditoria (sem informações sensíveis)
+    public function toAuditArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'donation_token' => $this->donation_token,
+            'user_id' => $this->user_id,
+            'blood_type' => $this->blood_type,
+            'donation_date' => $this->donation_date,
+            'status' => $this->status,
+            'bloodcenter_id' => $this->bloodcenter_id,
+            'has_encrypted_data' => $this->hasEncryptedData(),
+            'encrypted_at' => $this->encrypted_at,
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+        ];
     }
 
     // Limpa cache ao atualizar
