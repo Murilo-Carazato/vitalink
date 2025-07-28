@@ -3,8 +3,10 @@
 namespace App\Providers;
 
 use App\Models\BloodCenter;
+use App\Models\Donation;
 use App\Models\User;
 use App\Policies\BloodCenterPolicy;
+use App\Policies\DonationPolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
@@ -17,6 +19,7 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         BloodCenter::class => BloodCenterPolicy::class,
+        Donation::class => DonationPolicy::class,
         User::class => UserPolicy::class,
     ];
 
