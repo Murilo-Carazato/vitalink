@@ -18,6 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
+            'validate.donation.interval' => \App\Http\Middleware\ValidateDonationInterval::class,
+            'refresh.token' => \App\Http\Middleware\RefreshTokenMiddleware::class,
         ]);
 
         //
