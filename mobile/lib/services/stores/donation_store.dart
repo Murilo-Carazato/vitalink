@@ -4,6 +4,10 @@ import 'package:vitalink/services/helpers/http_client.dart';
 import 'package:vitalink/services/models/donation_model.dart';
 import 'package:vitalink/services/repositories/api/donation_repository.dart';
 import 'package:vitalink/services/stores/user_store.dart';
+import 'package:flutter/foundation.dart';
+import '../helpers/privacy_validator.dart';
+import '../helpers/notification_service.dart';
+import '../helpers/token_service.dart';
 
 class DonationStore extends ChangeNotifier {
   final DonationRepository _repository;
@@ -18,7 +22,9 @@ class DonationStore extends ChangeNotifier {
   List<DonationModel> _donations = [];
   DonationModel? _nextDonation;
   bool _isLoading = false;
-  String _error = '';
+  String? _error;
+  final NotificationService _notificationService = NotificationService();
+  final TokenService _tokenService = TokenService();
   Map<String, dynamic> _statistics = {};
 
   // Getters
@@ -39,6 +45,11 @@ class DonationStore extends ChangeNotifier {
       _error = value.substring(11); // Remove "Exception: "
     } else {
       _error = value;
+    }
+    // Log error for debugging but don't expose sensitive data
+    if (kDebugMode) {
+      final sanitizedError = PrivacyValidator.sanitizeForLogging(value);
+      print('DonationStore Error: $sanitizedError');
     }
     notifyListeners();
   }
