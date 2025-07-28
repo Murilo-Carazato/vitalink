@@ -28,12 +28,8 @@ class DonationController extends Controller
      */
     public function index(Request $request)
     {
-        // Only admins can list all donations
-        if (!$request->user()->isAdmin()) {
-            return response()->json([
-                'message' => 'Acesso não autorizado'
-            ], Response::HTTP_FORBIDDEN);
-        }
+        // Authorization is handled by DonationPolicy::viewAny
+        $this->authorize('viewAny', Donation::class);
 
         $query = $this->donationService->getDonations($request);
         return response()->json(['data' => PaginateAndFilter::response($query)]);
@@ -44,6 +40,9 @@ class DonationController extends Controller
      */
     public function store(DonationStoreRequest $request)
     {
+        // Authorization is handled by DonationPolicy::create
+        $this->authorize('create', Donation::class);
+        
         // Rate limiting: max 3 donation requests per day per user
         $maxAttempts = 3;
         $key = 'donation_attempts_' . $request->user()->id;
@@ -142,6 +141,8 @@ class DonationController extends Controller
             ], Response::HTTP_FORBIDDEN);
         }
 
+        $this->authorize('update', $donation);
+
         $updatedDonation = $this->donationService->updateDonation($donation, $request->validated(), $request->user());
 
         return response()->json([
@@ -235,6 +236,14 @@ class DonationController extends Controller
      */
     public function complete(Request $request, string $token)
     {
+        // This endpoint should not be accessible to regular users
+        // Only blood center staff through admin authentication
+        if (!$request->user()->isAdmin()) {
+            return response()->json([
+                'message' => 'Acesso não autorizado - apenas funcionários de hemocentros'
+            ], Response::HTTP_FORBIDDEN);
+        }
+
         $donation = $this->donationService->getDonationByToken($token);
 
         if (!$donation) {
@@ -243,11 +252,18 @@ class DonationController extends Controller
             ], Response::HTTP_NOT_FOUND);
         }
 
-        // Only blood center staff can complete donations
-        if (!$request->user()->isAdmin() || !$request->user()->canManageBloodCenter($donation->bloodcenter)) {
+        // Verify blood center association
+        if (!$request->user()->canManageBloodCenter($donation->bloodcenter)) {
             return response()->json([
-                'message' => 'Apenas funcionários do hemocentro podem confirmar doações'
+                'message' => 'Você não tem permissão para gerenciar este hemocentro'
             ], Response::HTTP_FORBIDDEN);
+        }
+
+        // Additional validation: donation must be today and confirmed
+        if (!$donation->donation_date->isToday() || $donation->status !== DonationStatus::CONFIRMED) {
+            return response()->json([
+                'message' => 'Doação não pode ser concluída neste momento'
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $completedDonation = $this->donationService->completeDonation($donation, $request->user());
