@@ -28,6 +28,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verified_at',
         'last_login_at',
         'is_active',
+        'bloodcenter_id', // Only for admin users
     ];
 
     /**
@@ -146,6 +147,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'id' => $this->id,
             'email' => $this->email,
             'isadmin' => $this->isadmin,
+            'email_verified' => $this->hasVerifiedEmail(),
         ];
     }
 
