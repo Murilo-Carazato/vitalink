@@ -1,0 +1,25 @@
+@import "tailwindcss";
+@import '../../../vendor/filament/forms/dist/module.esm.css';
+@import "../../../vendor/filament/filament/dist/theme.css";
+
+
+
+.list {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.list:before {
+  content: '•';
+  display: inline-block;
+  color: #ED1C24;
+  font-size: 30px;
+}
+ 
+
+span.swiper-pagination-bullet.swiper-pagination-bullet-active {
+  background-color: #ED1C24;
+  opacity: 1;
+}
