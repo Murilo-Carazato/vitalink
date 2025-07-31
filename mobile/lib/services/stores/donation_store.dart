@@ -1,10 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:vitalink/services/helpers/http_client.dart';
 import 'package:vitalink/services/models/donation_model.dart';
 import 'package:vitalink/services/repositories/api/donation_repository.dart';
 import 'package:vitalink/services/stores/user_store.dart';
-import 'package:flutter/foundation.dart';
 import '../helpers/privacy_validator.dart';
 import '../helpers/notification_service.dart';
 import '../helpers/token_service.dart';
@@ -31,7 +29,7 @@ class DonationStore extends ChangeNotifier {
   List<DonationModel> get donations => _donations;
   DonationModel? get nextDonation => _nextDonation;
   bool get isLoading => _isLoading;
-  String get error => _error;
+  String? get error => _error;
   Map<String, dynamic> get statistics => _statistics;
 
   // Métodos privados
@@ -55,7 +53,7 @@ class DonationStore extends ChangeNotifier {
   }
 
   void _clearError() {
-    _error = '';
+    _error = null;
   }
 
   Future<bool> _ensureUserIsLoaded() async {

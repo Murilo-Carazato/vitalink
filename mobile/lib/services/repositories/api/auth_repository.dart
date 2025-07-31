@@ -44,6 +44,8 @@ class AuthRepository {
         body: {'idToken': firebaseIdToken},
       );
 
+  print("req ${res.body}");
+
       if (res.statusCode == 200) {
         return jsonDecode(res.body);
       }

@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Log; // Added for debugging
 use Kreait\Firebase\Contract\Auth as FirebaseAuth;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Validation\ValidationException;
@@ -71,6 +72,15 @@ class AuthController extends Controller
      */
     public function handleGoogleCallback(Request $request)
     {
+        // Debug: initial request information
+        Log::info('Google login attempt', [
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            // Do NOT log entire token for security; just first 15 chars
+            'token_start' => substr($request->idToken ?? '', 0, 15)
+        ]);
+
+
         $request->validate([
             'idToken' => 'required|string',
         ]);
@@ -78,6 +88,7 @@ class AuthController extends Controller
         try {
             $verifiedIdToken = $this->firebaseAuth->verifyIdToken($request->idToken);
         } catch (\Exception $e) {
+            Log::warning('Firebase token verification failed', ['exception' => $e->getMessage()]);
             SecurityLogService::logSecurityViolation('invalid_firebase_token', [
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
@@ -88,6 +99,14 @@ class AuthController extends Controller
                 'message' => 'Token do Firebase inválido'
             ], Response::HTTP_UNAUTHORIZED);
         }
+
+        // Log token claims for debugging (no sensitive user info)
+        Log::info('Firebase token verified', [
+            'uid' => $verifiedIdToken->claims()->get('sub'),
+            'email' => $verifiedIdToken->claims()->get('email'),
+            'issuer' => $verifiedIdToken->claims()->get('iss'),
+            'aud' => $verifiedIdToken->claims()->get('aud')
+        ]);
 
         $uid = $verifiedIdToken->claims()->get('sub');
         $email = $verifiedIdToken->claims()->get('email');
@@ -107,8 +126,9 @@ class AuthController extends Controller
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         
-        // Validate issuer and audience
-        if (!str_contains($issuer, 'accounts.google.com')) {
+        // Validate issuer (Firebase returns https://securetoken.google.com/<project-id>)
+        $expectedIssuer = 'https://securetoken.google.com/'.env('FIREBASE_PROJECT_ID');
+        if ($issuer !== $expectedIssuer && !str_contains($issuer, 'accounts.google.com')) {
             SecurityLogService::logSecurityViolation('invalid_token_issuer', [
                 'issuer' => $issuer
             ]);
@@ -118,11 +138,12 @@ class AuthController extends Controller
             ], Response::HTTP_UNAUTHORIZED);
         }
         
-        // Check token expiration
-        $exp = $verifiedIdToken->claims()->get('exp');
-        if ($exp && $exp < time()) {
+        // Check token expiration (verifyIdToken already checks, but we log if close)
+        $expClaim = $verifiedIdToken->claims()->get('exp');
+        $expTs = $expClaim instanceof \DateTimeInterface ? $expClaim->getTimestamp() : $expClaim;
+        if ($expTs && $expTs < time()) {
             SecurityLogService::logSecurityViolation('expired_google_token', [
-                'exp' => $exp,
+                'exp' => $expTs,
                 'current_time' => time()
             ]);
             

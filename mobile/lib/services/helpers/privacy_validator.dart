@@ -50,6 +50,29 @@ class PrivacyValidator {
     return sanitized;
   }
 
+  /// Alias para `sanitizeText` para compatibilidade legada
+  static String sanitizeString(String? text) => sanitizeText(text);
+
+  /// Retorna `true` se o texto contiver dados sensíveis, de acordo com [_sensitivePatterns].
+  static bool containsSensitiveData(String? text) =>
+      !validateSensitiveData(text).isValid;
+
+  /// Limpa dados sensíveis do texto (duplicado, será removido em refatoração futura)
+  static String _sanitizeTextLegacy(String? text) {
+    if (text == null || text.isEmpty) {
+      return '';
+    }
+
+    String sanitized = text;
+
+    for (final pattern in _sensitivePatterns) {
+      final regex = RegExp(pattern);
+      sanitized = sanitized.replaceAll(regex, '[DADOS_REMOVIDOS]');
+    }
+
+    return sanitized;
+  }
+
   /// Valida dados de doação antes de enviar
   static Map<String, dynamic> validateDonationData(Map<String, dynamic> data) {
     final sanitizedData = <String, dynamic>{};

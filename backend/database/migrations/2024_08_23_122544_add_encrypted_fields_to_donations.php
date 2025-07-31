@@ -13,12 +13,12 @@ return new class extends Migration
     {
         Schema::table('donations', function (Blueprint $table) {
             // Adicionar campos criptografados para informações médicas sensíveis
-            $table->longText('encrypted_medical_notes')->nullable()->after('notes');
-            $table->text('medical_notes_hash')->nullable()->after('encrypted_medical_notes');
+            $table->longText('encrypted_medical_notes')->nullable()->after('medical_notes');
+            $table->string('medical_notes_hash', 64)->nullable()->after('encrypted_medical_notes');
             
             // Adicionar campos para questões de saúde sensíveis
             $table->longText('encrypted_health_questions')->nullable()->after('medical_notes_hash');
-            $table->text('health_questions_hash')->nullable()->after('encrypted_health_questions');
+            $table->string('health_questions_hash', 64)->nullable()->after('encrypted_health_questions');
             
             // Adicionar timestamp para controle de criptografia
             $table->timestamp('encrypted_at')->nullable()->after('health_questions_hash');

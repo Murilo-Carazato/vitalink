@@ -152,7 +152,7 @@ class _HistoryPageState extends State<HistoryPage> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (store.error.isNotEmpty) {
+          if (store.error!.isNotEmpty) {
             return Center(child: Text('Erro: ${store.error}'));
           }
 
