@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Foundation\Vite;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,6 +21,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->app->booted(function () {
+            if (app()->bound('filament')) {
+                \Filament\Facades\Filament::serving(function () {
+                    \Filament\Facades\Filament::registerTheme(
+                        app(Vite::class)('resources/css/app.css'),
+                    );
+                });
+            }
+        });
+        
         $certPath = base_path('cacert.pem');
         if (file_exists($certPath)) {
             Log::info('cacert.pem FOUND at: ' . $certPath);

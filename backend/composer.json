@@ -8,6 +8,9 @@
         "php": "^8.2",
         "guzzlehttp/guzzle": "^7.9",
         "kreait/laravel-firebase": "^5.9",
+        "filament/filament": "^3.2",
+        "filament/forms": "^3.3",
+        "filament/tables": "^3.3",
         "laravel/framework": "^11.9",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9"
