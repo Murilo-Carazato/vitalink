@@ -52,3 +52,6 @@ app.*.map.json
 /windows/flutter/generated_plugins.cmake
 
 /macos/Flutter/GeneratedPluginRegistrant.*
+
+# FVM Version Cache
+.fvm/
