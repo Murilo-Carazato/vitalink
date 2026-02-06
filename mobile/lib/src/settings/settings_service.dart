@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:vitalink/services/repositories/user_repository.dart';
 
 /// Serviço que armazena e recupera as configurações do usuário.
@@ -8,6 +9,10 @@ class SettingsService {
   /// Carrega o ThemeMode preferido do usuário do armazenamento local.
   Future<ThemeMode> themeMode() async {
     try {
+      if (kIsWeb) {
+        // Web não usa sqflite; retorna padrão
+        return ThemeMode.dark;
+      }
       final users = await _userRepository.getUser();
       if (users.isNotEmpty) {
         return users.first.getThemeMode();
@@ -22,6 +27,7 @@ class SettingsService {
   /// Persiste o ThemeMode preferido do usuário no armazenamento local.
   Future<void> updateThemeMode(ThemeMode theme) async {
     try {
+      if (kIsWeb) return; // No-op no Web (sem DB)
       final users = await _userRepository.getUser();
       if (users.isNotEmpty) {
         final user = users.first;

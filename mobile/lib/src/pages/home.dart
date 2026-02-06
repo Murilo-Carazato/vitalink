@@ -23,6 +23,9 @@ import 'package:add_2_calendar/add_2_calendar.dart';
 import 'package:vitalink/services/models/donation_model.dart';
 import 'package:vitalink/src/components/custom_dialog.dart';
 import 'package:go_router/go_router.dart';
+import 'package:vitalink/services/helpers/calendar_helper.dart';
+import 'package:vitalink/services/helpers/launcher_helper.dart';
+
 
 //TODO: melhorar o layout, código, q mais?
 //mostrar erro de "usuário nao verificou o email"
@@ -55,9 +58,24 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadInitialData() async {
-    // Carrega próxima doação e estatísticas
-    await widget.donationStore.fetchNextDonation();
-    await widget.donationStore.fetchDonationHistory();
+    try {
+      // Carrega próxima doação e estatísticas
+      await widget.donationStore.fetchNextDonation();
+      await widget.donationStore.fetchDonationHistory();
+    } catch (e) {
+      // Log error internally if needed
+    }
+
+    try {
+      // Carrega hemocentros e sincroniza com a localização
+      await widget.bloodCenterStore.index(false, '');
+      
+      if (mounted) {
+        await widget.nearbyStore.syncNearbyBloodCenters(bloodCentersFromApi: widget.bloodCenterStore.state.value);
+      }
+    } catch (e) {
+      // Log error internally if needed
+    }
   }
 
   @override
@@ -65,56 +83,6 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  Future<bool> requestPermission() async {
-    Permission permission = Permission.location;
-    PermissionStatus permissionStatus = await permission.request();
-    if (permissionStatus.isGranted) {
-      return true;
-    }
-    if (permissionStatus.isDenied) {
-      requestPermission();
-    }
-    return false;
-  }
-
-  Future<void> openMap(String address) async {
-    final query = Uri.encodeComponent(address);
-    final googleUrl = 'https://www.google.com/maps/search/?api=1&query=$query';
-
-    final uri = Uri.parse(googleUrl);
-
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      throw 'Não foi possível abrir o mapa.';
-    }
-  }
-
-  void _addDonationToCalendar(DonationModel donation) {
-    // Parse time string 'HH:mm'
-    final timeParts = donation.donationTime.split(':');
-    final hour = int.parse(timeParts[0]);
-    final minute = int.parse(timeParts[1]);
-
-    final startDate = DateTime(
-      donation.donationDate.year,
-      donation.donationDate.month,
-      donation.donationDate.day,
-      hour,
-      minute,
-    );
-
-    final event = Event(
-      title: 'Doação de Sangue - Vitalink',
-      description:
-          'Doação de sangue agendada no hemocentro ${donation.bloodcenter?.name}. Não se esqueça de levar um documento com foto e se alimentar bem antes!',
-      location: donation.bloodcenter?.address ?? 'Endereço não informado',
-      startDate: startDate,
-      endDate: startDate.add(const Duration(hours: 1)), // Assume 1 hour duration
-      allDay: false,
-    );
-    Add2Calendar.addEvent2Cal(event);
-  }
 
   String _formatDate(DateTime date) {
     const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -213,7 +181,7 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(height: 8),
               InkWell(
-                onTap: () => _addDonationToCalendar(nextDonation),
+                onTap: () => CalendarHelper.addDonationToCalendar(nextDonation),
                 borderRadius: BorderRadius.circular(8),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -263,7 +231,13 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   ElevatedButton.icon(
                     onPressed: () async {
-                      await openMap(nextDonation.bloodcenter!.address);
+                      try {
+                        await LauncherHelper.openMap(nextDonation.bloodcenter!.address);
+                      } catch (e) {
+                        if (context.mounted) {
+                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                        }
+                      }
                     },
                     icon: const Icon(Icons.location_on_outlined),
                     label: const Text('Ver no mapa'),
@@ -321,16 +295,23 @@ class _HomePageState extends State<HomePage> {
   CarouselSliderController sliderController = CarouselSliderController();
 
   @override
+  @override
+  @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return RefreshIndicator.adaptive(
       onRefresh: () async {
-        print('Atualizando dados da página inicial...');
         await Future.wait([
-          widget.nearbyStore.syncNearbyBloodCenters(bloodCentersFromApi: widget.bloodCenterStore.state.value),
-          widget.donationStore.fetchNextDonation(),
-          // widget.donationStore.fetchStatistics(),
-        ]);
+          widget.bloodCenterStore.index(false, '', forceRefresh: true),
+          widget.bloodCenterStore.fetchForDropdown(), // Ensure dropdown data is also refreshed if needed
+        ]).then((_) {
+           if (widget.bloodCenterStore.state.value.isNotEmpty) {
+             return widget.nearbyStore.syncNearbyBloodCenters(
+               bloodCentersFromApi: widget.bloodCenterStore.state.value, 
+               forceRefresh: true
+             );
+           }
+        });
       },
       child: SingleChildScrollView(
         physics: const RangeMaintainingScrollPhysics(),

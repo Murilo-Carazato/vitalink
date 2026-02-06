@@ -5,7 +5,8 @@
     <application
         android:label="vitalink"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <!-- Enable Flutter deep linking -->
         <meta-data android:name="flutter_deeplinking_enabled" android:value="true" />
         <activity

@@ -1,6 +1,7 @@
 import 'package:vitalink/services/helpers/database_helper.dart';
 import 'package:vitalink/services/models/blood_center_model.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 abstract class IFollowedBloodCenterRepository {
   IFollowedBloodCenterRepository() {
@@ -22,11 +23,13 @@ class FollowedBloodCenterRepository implements IFollowedBloodCenterRepository {
 
   @override
   initRepository() async {
+    if (kIsWeb) return; // Evita tocar no DB no Web
     await getLikedBloodCenters();
   }
 
   @override
   Future<List<BloodCenterModel>> getLikedBloodCenters() async {
+    if (kIsWeb) return <BloodCenterModel>[]; // Web não usa sqflite
     db = await DatabaseHelper.instance.database;
     List bloodCenters = await db.rawQuery('SELECT * FROM BloodCenter');
 
@@ -37,18 +40,21 @@ class FollowedBloodCenterRepository implements IFollowedBloodCenterRepository {
 
   @override
   createBc(BloodCenterModel bloodCenter) async {
+    if (kIsWeb) return; // No-op no Web
     db = await DatabaseHelper.instance.database;
     return await db.insert('BloodCenter', bloodCenter.toMap());
   }
 
   @override
   deleteBc(BloodCenterModel bloodCenter) async {
+    if (kIsWeb) return; // No-op no Web
     db = await DatabaseHelper.instance.database;
     return await db.delete('BloodCenter', where: 'id = ${bloodCenter.id}');
   }
 
   @override
   deleteAllBcs() async {
+    if (kIsWeb) return; // No-op no Web
     db = await DatabaseHelper.instance.database;
     return await db.delete('BloodCenter');
   }

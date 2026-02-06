@@ -18,6 +18,11 @@ class BloodCenter extends Model
         'address',
         'phone_number',
         'site',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
     ];
 
     public function users()

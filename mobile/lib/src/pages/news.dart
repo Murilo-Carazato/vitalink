@@ -1,4 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:vitalink/services/helpers/my_dates_formatter.dart';
 import 'package:vitalink/services/models/news_model.dart';
@@ -25,17 +26,19 @@ class _NewsPageState extends State<NewsPage> {
 
   @override
   void initState() {
-    // Listener para notificações recebidas em foreground
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Nova notificação: ${message.notification?.title}');
-      if (mounted && message.notification != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Nova notificação: ${message.notification!.title ?? ''}'),
-          ),
-        );
-      }
-    });
+    // Listener para notificações recebidas em foreground (somente mobile por enquanto)
+    if (!kIsWeb) {
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        print('Nova notificação: ${message.notification?.title}');
+        if (mounted && message.notification != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Nova notificação: ${message.notification!.title ?? ''}'),
+            ),
+          );
+        }
+      });
+    }
 
     // newsStore.index(false, 0).whenComplete(() {
     //   for (NewsModel element in newsStore.state.value) {

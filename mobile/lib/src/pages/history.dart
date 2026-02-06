@@ -152,7 +152,7 @@ class _HistoryPageState extends State<HistoryPage> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (store.error!.isNotEmpty) {
+          if (store.error != null && store.error!.isNotEmpty) {
             return Center(child: Text('Erro: ${store.error}'));
           }
 
@@ -343,7 +343,7 @@ class _HistoryPageState extends State<HistoryPage> {
           
           // Location info
           InkWell(
-            onTap: () => _openMap(donation.bloodcenter!.address),
+            onTap: donation.bloodcenter != null ? () => _openMap(donation.bloodcenter!.address) : null,
             borderRadius: BorderRadius.circular(8),
             child: Row(
               children: [
@@ -354,7 +354,7 @@ class _HistoryPageState extends State<HistoryPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Endereço: ${donation.bloodcenter!.address}",
+                        "Endereço: ${donation.bloodcenter?.address ?? 'Não informado'}",
                         style: textTheme.labelSmall,
                       ),
                       if (donation.medicalNotes != null && donation.medicalNotes!.isNotEmpty)

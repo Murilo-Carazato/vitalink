@@ -152,33 +152,8 @@ class AuthController extends Controller
             ], Response::HTTP_UNAUTHORIZED);
         }
 
-        try {
-            $firebaseUser = $this->firebaseAuth->getUser($uid);
-        } catch (\Exception $e) {
-            SecurityLogService::logSecurityViolation('firebase_user_not_found', [
-                'uid' => $uid,
-                'error' => $e->getMessage()
-            ]);
-            
-            return response()->json([
-                'message' => 'Usuário não encontrado'
-            ], Response::HTTP_UNAUTHORIZED);
-        }
-
-        // Check if account is disabled
-        if ($firebaseUser->disabled) {
-            SecurityLogService::logSecurityViolation('disabled_firebase_account', [
-                'uid' => $uid,
-                'email' => $firebaseUser->email
-            ]);
-            
-            return response()->json([
-                'message' => 'Conta desativada'
-            ], Response::HTTP_FORBIDDEN);
-        }
-
         $user = User::updateOrCreate(
-            ['email' => $firebaseUser->email],
+            ['email' => $email],
             [
                 'password' => Hash::make(Str::random(24)),
                 'isadmin' => 'user', // Default to regular user

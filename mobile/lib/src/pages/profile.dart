@@ -1,4 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:vitalink/services/models/user_model.dart';
@@ -53,7 +54,9 @@ class _ProfilePageState extends State<ProfilePage> {
     _initialUser = user; // <-- Salva o usuário no momento que a tela é carregada
     oldBloodTypeTopic =
         convertBloodType(user.bloodType!); // Salva o tópico antigo
-    subscribeToBloodTypeTopic(user.bloodType!);
+    if (!kIsWeb) {
+      subscribeToBloodTypeTopic(user.bloodType!);
+    }
     nameController.text = user.name;
     bloodTypeController.text = user.bloodType!;
     dateInput.text = user.birthDate!;
@@ -110,6 +113,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void subscribeToBloodTypeTopic(String bloodType) {
+    if (kIsWeb) return; // Topics não são suportados no Web
     final topic = convertBloodType(bloodType);
     if (topic.isNotEmpty) {
       FirebaseMessaging.instance.subscribeToTopic(topic);
@@ -117,6 +121,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void unsubscribeFromBloodTypeTopic(String bloodType) {
+    if (kIsWeb) return; // Topics não são suportados no Web
     final topic = convertBloodType(bloodType);
     if (topic.isNotEmpty) {
       FirebaseMessaging.instance.unsubscribeFromTopic(topic);

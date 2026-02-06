@@ -237,6 +237,40 @@ class AuthStore with ChangeNotifier {
     }
   }
 
+  /// Valida o token atual com o backend.
+  /// Se o token for inválido (401), realiza o logout forçado.
+  /// Retorna true se o token for válido ou se não foi possível validar (offline).
+  /// Retorna false se o token for inválido e o usuário foi deslogado.
+  Future<bool> validateSession() async {
+    final currentUser = await _userRepo.getAuthenticatedUser();
+    if (currentUser == null || currentUser.token == null || currentUser.token!.isEmpty) {
+      return false; // Sem sessão
+    }
+
+    try {
+      print('Validating session token...');
+      final response = await MyHttpClient.get(
+        url: '/user',
+        headers: MyHttpClient.getHeaders(token: currentUser.token!),
+      );
+
+      if (response.statusCode == 401) {
+        print('Session invalid (401). Forcing logout.');
+        await signOut(); // Reutiliza o método signOut existente para limpar tudo
+        return false;
+      } else if (response.statusCode == 200) {
+        print('Session valid.');
+        return true;
+      } else {
+        print('Session validation returned: ${response.statusCode}. Assuming valid (offline/server error).');
+        return true;
+      }
+    } catch (e) {
+      print('Error validating session: $e. Assuming valid (network issue).');
+      return true;
+    }
+  }
+
   // -------------------------------------------------------
   void _start() {
     isLoading = true;

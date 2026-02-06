@@ -1,6 +1,7 @@
 import 'package:vitalink/services/helpers/database_helper.dart';
 import 'package:vitalink/services/models/user_model.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 abstract class IUserRepository {
   IUserRepository() {
@@ -21,11 +22,13 @@ class UserRepository implements IUserRepository {
 
   @override
   initRepository() async {
+    if (kIsWeb) return; // Evita tocar no DB no Web
     await getUser();
   }
 
   @override
   getUser() async {
+    if (kIsWeb) return <UserModel>[]; // Web não usa sqflite
     db = await DatabaseHelper.instance.database;
     List users = await db.rawQuery('SELECT * FROM User');
     List<UserModel> convertedList = List<UserModel>.generate(
@@ -36,6 +39,7 @@ class UserRepository implements IUserRepository {
 
   Future<UserModel?> getAuthenticatedUser() async {
     try {
+      if (kIsWeb) return null; // Web não usa usuário local via DB
       db = await DatabaseHelper.instance.database;
       final List<Map<String, dynamic>> maps = await db.query(
         'User',
@@ -61,6 +65,7 @@ class UserRepository implements IUserRepository {
 
   Future<bool> saveAuthToken(int userId, String token) async {
     try {
+      if (kIsWeb) return false; // Web não persiste token no sqflite
       db = await DatabaseHelper.instance.database;
       
       final user = await getUserById(userId);
@@ -82,6 +87,7 @@ class UserRepository implements IUserRepository {
   }
 
   Future<UserModel?> getUserById(int id) async {
+    if (kIsWeb) return null;
     db = await DatabaseHelper.instance.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'User',
@@ -98,6 +104,7 @@ class UserRepository implements IUserRepository {
 
   @override
   createUser(UserModel user) async {
+    if (kIsWeb) return; // No-op no Web
     db = await DatabaseHelper.instance.database;
     await db.insert('User', user.toMap());
     getUser();
@@ -105,6 +112,7 @@ class UserRepository implements IUserRepository {
 
   @override
   Future<int> updateUser(UserModel user) async {
+    if (kIsWeb) return 0; // No-op no Web
     db = await DatabaseHelper.instance.database;
     return await db
         .update('User', user.toMap(), where: 'id = ?', whereArgs: [user.id]);
@@ -112,6 +120,7 @@ class UserRepository implements IUserRepository {
 
   // Improved clearTable method to handle SQLite constraints
   Future<void> clearTable() async {
+    if (kIsWeb) return; // No-op no Web
     db = await DatabaseHelper.instance.database;
     try {
       // Use transaction for better atomicity

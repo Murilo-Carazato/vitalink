@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:vitalink/services/helpers/blood_center_name.dart';
+import 'package:vitalink/services/helpers/launcher_helper.dart';
 import 'package:vitalink/services/models/blood_center_model.dart';
-import 'package:url_launcher/url_launcher.dart';
+
 import 'package:vitalink/src/pages/blood_center_details.dart';
+import 'package:go_router/go_router.dart';
+
 
 class BloodCenterCardWithOptions extends StatefulWidget {
   final BloodCenterModel bloodCenter;
@@ -76,18 +79,6 @@ class _BloodCenterCardWithOptionsState extends State<BloodCenterCardWithOptions>
     return false;
   }
 
-  Future<void> openMap(String address) async {
-    final query = Uri.encodeComponent(address);
-    final googleUrl = 'https://www.google.com/maps/search/?api=1&query=$query';
-
-    final uri = Uri.parse(googleUrl);
-
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      throw 'Não foi possível abrir o mapa.';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -100,13 +91,8 @@ class _BloodCenterCardWithOptionsState extends State<BloodCenterCardWithOptions>
         child: InkWell(
           onTap: () {
             // Navegar para a tela de detalhes do hemocentro
-            Navigator.pushNamed(
-              context,
-              BloodCenterDetailsPage.routeName,
-              arguments: {
-                'bloodCenterId': widget.bloodCenter.id,
-              },
-            );
+            context.push('/blood-center-details',
+                extra: {'bloodCenterId': widget.bloodCenter.id});
           },
           child: SizedBox(
             height: 125,
@@ -151,12 +137,13 @@ class _BloodCenterCardWithOptionsState extends State<BloodCenterCardWithOptions>
                                         onTap: () async {
                                           //Abrirá site somente se houver cadastro
                                           if (widget.bloodCenter.site != null && widget.bloodCenter.site!.isNotEmpty) {
-                                            //Navega para site somente se houver um navegador disponível no dispositivo
-                                            bool canLaunch = await canLaunchUrl(Uri.parse(widget.bloodCenter.site!));
-
-                                            if (canLaunch) {
-                                              await launchUrl(Uri.parse(widget.bloodCenter.site!));
-                                            }
+                                              try {
+                                                await LauncherHelper.openWebsite(widget.bloodCenter.site!);
+                                              } catch (e) {
+                                                if(context.mounted) {
+                                                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                                                }
+                                              }
                                           }
                                         },
                                         child: Row(
@@ -173,8 +160,13 @@ class _BloodCenterCardWithOptionsState extends State<BloodCenterCardWithOptions>
                                         )),
                                     PopupMenuItem(
                                         onTap: () async {
-                                            await openMap(widget.bloodCenter.address);
-
+                                           try {
+                                             await LauncherHelper.openMap(widget.bloodCenter.address);
+                                          } catch (e) {
+                                            if(context.mounted) {
+                                               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                                            }
+                                          }
                                         },
                                         child: const Row(
                                           children: [

@@ -45,9 +45,8 @@ class BloodRepository implements IBloodRepository {
           pages.value = localPages;
 
           //Contrução da listagem para quando há paginação
-          body['data']['data'].map((e) {
-            bloodCenters.add(BloodCenterModel.fromMap(e));
-          }).toList();
+          final data = body['data']['data'];
+          _parseList(data, bloodCenters);
 
           if (body['data'].containsKey('next_page_url')) {
             if (body['data']['next_page_url'] != null) {
@@ -59,9 +58,8 @@ class BloodRepository implements IBloodRepository {
           }
         } else {
           //Contrução da listagem para quando NÃO há paginação
-          body['data'].map((e) {
-            bloodCenters.add(BloodCenterModel.fromMap(e));
-          }).toList();
+          final data = body['data'];
+          _parseList(data, bloodCenters);
         }
 
         return bloodCenters;
@@ -89,6 +87,18 @@ class BloodRepository implements IBloodRepository {
       }
     } catch (e) {
       rethrow;
+    }
+  }
+
+  void _parseList(dynamic data, List<BloodCenterModel> bloodCenters) {
+    if (data is List) {
+      for (var item in data) {
+        try {
+          bloodCenters.add(BloodCenterModel.fromMap(item));
+        } catch (e) {
+          // Ignore malformed items
+        }
+      }
     }
   }
 }

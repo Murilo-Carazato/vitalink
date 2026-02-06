@@ -1,12 +1,21 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class MyHttpClient {
   static String? _token;
   // static String? _token = "3|TdMkGp4EHz1iZ3oq7HExr2xTx836rFmScKFceeXdca0075fd";
 
-  static const baseUrl = "http://192.168.0.3:8000/api";
+  // Base URL configurável via --dart-define=API_BASE_URL
+  // Ex.: fvm flutter run --dart-define=API_BASE_URL=http://localhost:8080
+  // Normaliza a barra final e adiciona "/api".
+  //static const baseUrl = "http://192.168.0.3:8000/api";
+  static final String baseUrl = (() {
+    final env = dotenv.env['API_BASE_URL']!;
+    final normalized = env.endsWith('/') ? env.substring(0, env.length - 1) : env;
+    return '$normalized/api';
+  })();
 
 
   static void setToken(String newToken) {
@@ -50,12 +59,19 @@ class MyHttpClient {
     required String url,
     required Map<String, String> headers,
   }) async {
-    final response = await http.get(
-      Uri.parse(baseUrl + url),
-      headers: headers,
-    );
-
-    return response;
+    final fullUrl = baseUrl + url;
+    print('HTTP GET Request: $fullUrl');
+    try {
+      final response = await http.get(
+        Uri.parse(fullUrl),
+        headers: headers,
+      );
+      print('HTTP Response Status: ${response.statusCode}');
+      return response;
+    } catch (e) {
+      print('HTTP ERROR: $e');
+      rethrow;
+    }
   }
 
   static Future<http.Response> post({

@@ -21,5 +21,9 @@ class DatabaseSeeder extends Seeder
             'email' => 'murilocarazatoo@gmail.com',
             'password' => bcrypt('123456'),
         ]);
+
+        $this->call([
+            BloodCenterSeeder::class,
+        ]);
     }
 }

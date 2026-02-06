@@ -502,19 +502,8 @@ class MyNavbar extends StatefulWidget {
 class _MyNavbarState extends State<MyNavbar> with SingleTickerProviderStateMixin {
   late final List<Widget> tabViews;
   late final List<Tab> tabs;
-  Future requests() async {
-    await widget.bloodCenterStore.index(false, '').whenComplete(() async {
-      await widget.nearbyStore.syncNearbyBloodCenters(bloodCentersFromApi: widget.bloodCenterStore.state.value);
-      await widget.bloodCenterStore.index(true, '');
-    });
-  }
-
-  @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      requests();
-    });
     tabViews = <Widget>[
       HomePage(user: widget.userStore, bloodCenterStore: widget.bloodCenterStore, nearbyStore: widget.nearbyStore, donationStore: widget.donationStore),
       BloodCentersPage(bloodCenterStore: widget.bloodCenterStore),

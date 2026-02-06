@@ -6,6 +6,8 @@ import 'package:vitalink/services/stores/blood_center_store.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vitalink/src/pages/schedule_donation.dart';
 import 'package:go_router/go_router.dart';
+import 'package:vitalink/services/helpers/launcher_helper.dart';
+
 
 class BloodCenterDetailsPage extends StatefulWidget {
   static const routeName = '/blood-center-details';
@@ -37,74 +39,6 @@ class _BloodCenterDetailsPageState extends State<BloodCenterDetailsPage> {
     await _bloodCenterStore.show(widget.bloodCenterId);
   }
 
-  Future<void> _openMap(BloodCenterModel bloodCenter) async {
-    final query = Uri.encodeComponent(bloodCenter.address);
-    final googleUrl = 'https://www.google.com/maps/search/?api=1&query=$query';
-    final uri = Uri.parse(googleUrl);
-
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Não foi possível abrir o mapa')),
-        );
-      }
-    }
-  }
-
-  Future<void> _callPhoneNumber(BloodCenterModel bloodCenter) async {
-    if (bloodCenter.phoneNumber == null) return;
-
-    final uri = Uri.parse('tel:${bloodCenter.phoneNumber}');
-
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Não foi possível fazer a ligação')),
-        );
-      }
-    }
-  }
-
-  Future<void> _openWebsite(BloodCenterModel bloodCenter) async {
-    if (bloodCenter.site == null) return;
-
-    String url = bloodCenter.site!;
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = 'https://$url';
-    }
-
-    final uri = Uri.parse(url);
-
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Não foi possível abrir o site')),
-        );
-      }
-    }
-  }
-
-  Future<void> _sendEmail(BloodCenterModel bloodCenter) async {
-    if (bloodCenter.email == null) return;
-
-    final uri = Uri.parse('mailto:${bloodCenter.email}?subject=Contato sobre Doação de Sangue');
-
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Não foi possível abrir o app de e-mail')),
-        );
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -201,7 +135,15 @@ class _BloodCenterDetailsPageState extends State<BloodCenterDetailsPage> {
             leading: const Icon(LucideIcons.mapPin),
             title: const Text('Endereço'),
             subtitle: Text(bloodCenter.address),
-            onTap: () => _openMap(bloodCenter),
+            onTap: () async {
+              try {
+                await LauncherHelper.openMap(bloodCenter.address);
+              } catch (e) {
+                if(context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                }
+              }
+            },
           ),
 
           // Telefone (se disponível)
@@ -211,7 +153,15 @@ class _BloodCenterDetailsPageState extends State<BloodCenterDetailsPage> {
               leading: const Icon(LucideIcons.phone),
               title: const Text('Telefone'),
               subtitle: Text(bloodCenter.phoneNumber!),
-              onTap: () => _callPhoneNumber(bloodCenter),
+              onTap: () async {
+                try {
+                   await LauncherHelper.callPhoneNumber(bloodCenter.phoneNumber!);
+                } catch (e) {
+                  if(context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                  }
+                }
+              },
             ),
 
           // Email (se disponível)
@@ -223,7 +173,15 @@ class _BloodCenterDetailsPageState extends State<BloodCenterDetailsPage> {
               subtitle: Text(bloodCenter.email!),
               trailing: IconButton(
                 icon: const Icon(LucideIcons.send),
-                onPressed: () => _sendEmail(bloodCenter),
+                onPressed: () async {
+                   try {
+                     await LauncherHelper.sendEmail(bloodCenter.email!);
+                  } catch (e) {
+                    if(context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                    }
+                  }
+                },
                 tooltip: 'Enviar e-mail',
               ),
             ),
@@ -235,7 +193,15 @@ class _BloodCenterDetailsPageState extends State<BloodCenterDetailsPage> {
               leading: const Icon(LucideIcons.globe),
               title: const Text('Website'),
               subtitle: Text(bloodCenter.site!),
-              onTap: () => _openWebsite(bloodCenter),
+              onTap: () async {
+                 try {
+                     await LauncherHelper.openWebsite(bloodCenter.site!);
+                  } catch (e) {
+                    if(context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                    }
+                  }
+              },
             ),
 
           const SizedBox(height: 16),

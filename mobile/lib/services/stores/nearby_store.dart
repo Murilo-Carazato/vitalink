@@ -9,7 +9,20 @@ class NearbyStore with ChangeNotifier {
   ValueNotifier<bool> isLoading = ValueNotifier<bool>(false);
   ValueNotifier<String> erro = ValueNotifier<String>('');
 
-  Future<void> syncNearbyBloodCenters({required List<BloodCenterModel> bloodCentersFromApi}) async {
+  DateTime? _lastFetchTime;
+  static const Duration _cacheDuration = Duration(minutes: 5);
+
+  Future<void> syncNearbyBloodCenters({
+    required List<BloodCenterModel> bloodCentersFromApi,
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh &&
+        _lastFetchTime != null &&
+        state.value.isNotEmpty &&
+        DateTime.now().difference(_lastFetchTime!) < _cacheDuration) {
+      return;
+    }
+
     isLoading.value = true;
     try {
       Position position = await determinePosition();
@@ -17,6 +30,7 @@ class NearbyStore with ChangeNotifier {
 
       userPosition.value = position;
       state.value = nearby;
+      _lastFetchTime = DateTime.now();
     } on Exception catch (e) {
       erro.value = e.toString();
     } finally {
@@ -52,7 +66,7 @@ class NearbyStore with ChangeNotifier {
     return await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
   }
 
-  Future<List<NearbyModel>> getNearbyBCs(Position userPosition, List<BloodCenterModel> bloodCenters, {double radio = 500}) async {
+  Future<List<NearbyModel>> getNearbyBCs(Position userPosition, List<BloodCenterModel> bloodCenters, {double radio = 20000}) async {
     List<NearbyModel> nearbyBCs = [];
 
     //Filtra os hemocentros dentro do raio especificado (por padrão é de 500km)

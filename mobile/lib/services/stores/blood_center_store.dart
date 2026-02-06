@@ -41,7 +41,16 @@ class BloodCenterStore with ChangeNotifier {
 
 
   // Atualizado: sempre atualiza stateWhenPaginate, para que a tela sempre use esse notifier
-  Future<void> index(bool hasPagination, String search) async {
+  Future<void> index(bool hasPagination, String search, {bool forceRefresh = false}) async {
+    // Se já temos dados, não estamos em modo de busca e não foi forçado o refresh, retorna os dados atuais
+    if (!forceRefresh &&
+        !hasPagination &&
+        search.isEmpty &&
+        state.value.isNotEmpty) {
+      stateWhenPaginate.value = state.value;
+      return;
+    }
+
     isLoading.value = true;
     erro.value = '';
     try {

@@ -1,6 +1,8 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:go_router/go_router.dart';
 import 'package:vitalink/services/helpers/database_helper.dart';
 import 'package:vitalink/services/helpers/http_client.dart';
@@ -21,44 +23,82 @@ import 'package:vitalink/src/settings/settings_controller.dart';
 import 'package:vitalink/src/settings/settings_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'package:vitalink/firebase_options.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:vitalink/services/models/user_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
 
-  await Firebase.initializeApp();
-  await FirebaseMessaging.instance.requestPermission();
+  // Inicialização do Firebase para todas as plataformas.
+  if (kIsWeb) {
+    // Web requer options geradas pelo FlutterFire CLI.
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } else {
+    await Firebase.initializeApp();
+    // Permissões e Messaging somente em plataformas não-web por enquanto.
+    await FirebaseMessaging.instance.requestPermission();
+  }
   
-  await LocalNotificationHelper.initialize();
+  if (!kIsWeb) {
+    await LocalNotificationHelper.initialize();
+  }
 
   // Handler para quando o app está em primeiro plano
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    print('Got a message whilst in the foreground!');
-    print('Message data: ${message.data}');
-    print('Message notification: ${message.notification}');
-
-    LocalNotificationHelper.showNotification(message);
-  });
+  if (!kIsWeb) {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('Got a message whilst in the foreground!');
+      print('Message data: ${message.data}');
+      print('Message notification: ${message.notification}');
+  
+      LocalNotificationHelper.showNotification(message);
+    });
+  }
 
   final settingsController = SettingsController(SettingsService());
   
   //App é mantido no modo retrato
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-  //Cria instância para database
-  final db = await DatabaseHelper.instance.database;
-  print('Database initialized');
-
-  //Instancia do repositório de usuário
+  // Instancia do repositório de usuário
   UserRepository userRepository = UserRepository();
 
-  // Carrega o usuário do banco de dados local antes de inicializar o AuthRepository
-  final currentUser = await userRepository.getAuthenticatedUser();
-  if (currentUser != null && currentUser.token != null && currentUser.token!.isNotEmpty) {
-    print('Found authenticated user: ${currentUser.id}, token: ${currentUser.token!.substring(0, 10)}...');
-    MyHttpClient.setToken(currentUser.token!);
+  // Usuário atual (pode vir do banco local em mobile; no Web pulamos sqflite)
+  UserModel? currentUser;
+
+  if (!kIsWeb) {
+    //Cria instância para database (somente mobile)
+    final db = await DatabaseHelper.instance.database;
+    print('Database initialized');
+
+    // Carrega o usuário do banco de dados local antes de inicializar o AuthRepository
+    currentUser = await userRepository.getAuthenticatedUser();
+    
+    if (currentUser != null && currentUser!.token != null && currentUser!.token!.isNotEmpty) {
+      print('Found authenticated user: ${currentUser!.id}, token: ${currentUser!.token!.substring(0, 10)}...');
+      MyHttpClient.setToken(currentUser!.token!);
+    } else {
+      print('No authenticated user found');
+    }
+
+    final authRepository = AuthRepository();
+    final authStore = AuthStore(
+      authRepository: authRepository, 
+      userRepository: userRepository
+    );
+
+    // Valida a sessão logada (se houver)
+    if (currentUser != null) {
+       await authStore.validateSession();
+       // Atualiza a variável currentUser caso o logout tenha ocorrido
+       currentUser = await userRepository.getAuthenticatedUser();
+    }
   } else {
-    print('No authenticated user found');
+    // Web: sqflite não é suportado; pular DB local
+    print('Web detected: skipping local database (sqflite) initialization');
   }
 
   // Carrega as configurações de tema
@@ -75,7 +115,7 @@ void main() async {
   UserStore userStore = UserStore(repository: userRepository);
   // Já carregamos o usuário acima, então só precisamos configurar o estado
   if (currentUser != null) {
-    userStore.state.value = [currentUser];
+    userStore.state.value = [currentUser!];
   }
 
   final bloodCenterStore = BloodCenterStore(repository: BloodRepository());

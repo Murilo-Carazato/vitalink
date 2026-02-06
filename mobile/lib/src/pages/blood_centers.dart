@@ -18,6 +18,9 @@ class _BloodCentersPageState extends State<BloodCentersPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.bloodCenterStore.index(true, '');
+    });
   }
 
   @override
