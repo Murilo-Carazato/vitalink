@@ -148,6 +148,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'email' => $this->email,
             'isadmin' => $this->isadmin,
             'email_verified' => $this->hasVerifiedEmail(),
+            'blood_type' => $this->blood_type,
+            'birth_date' => $this->birth_date,
         ];
     }
 

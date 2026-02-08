@@ -102,6 +102,7 @@ class _MyAppState extends State<MyApp> {
               },
             ),
             brightness: Brightness.light,
+            colorScheme: ColorScheme.fromSeed(seedColor: Styles.primary, primary: Styles.primary),
             scaffoldBackgroundColor: Colors.white,
             splashColor: Styles.border,
             primaryColor: Styles.primary,
@@ -110,7 +111,7 @@ class _MyAppState extends State<MyApp> {
             //tabBar
             tabBarTheme: const TabBarTheme(
               dividerColor: Colors.white,
-              labelColor: Colors.black,
+              labelColor: Styles.primary,
               indicatorColor: Styles.primary,
               overlayColor: WidgetStatePropertyAll(Styles.border),
               splashFactory: InkSparkle.constantTurbulenceSeedSplashFactory,
@@ -267,12 +268,17 @@ class _MyAppState extends State<MyApp> {
             ),
             primaryColor: Styles.primary,
             brightness: Brightness.dark,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Styles.primary, 
+              primary: Styles.primary,
+              brightness: Brightness.dark,
+            ),
             scaffoldBackgroundColor: Styles.darkBackground,
 
             //tabBar
             tabBarTheme: const TabBarTheme(
               dividerColor: Colors.black,
-              labelColor: Colors.white,
+              labelColor: Styles.primary,
               indicatorColor: Styles.primary,
               overlayColor: WidgetStatePropertyAll(Styles.gray2),
               splashFactory: InkSparkle.constantTurbulenceSeedSplashFactory,
@@ -544,6 +550,9 @@ class _MyNavbarState extends State<MyNavbar> with SingleTickerProviderStateMixin
       body: TabBarView(children: tabViews),
       bottomNavigationBar: TabBar(
         tabs: tabs,
+        labelColor: Styles.primary,
+        indicatorColor: Styles.primary,
+        indicatorSize: TabBarIndicatorSize.label,
       ),
     );
   }

@@ -90,11 +90,17 @@ void main() async {
       userRepository: userRepository
     );
 
-    // Valida a sessão logada (se houver)
+    // Valida a sessão logada (se houver) de forma assíncrona para não travar o app (Splash Screen) se a rede estiver lenta
     if (currentUser != null) {
-       await authStore.validateSession();
-       // Atualiza a variável currentUser caso o logout tenha ocorrido
-       currentUser = await userRepository.getAuthenticatedUser();
+       // Não usamos await aqui para não bloquear o runApp() com timeouts de rede
+       authStore.validateSession().then((isValid) async {
+         if (!isValid) {
+            // Se a sessão for inválida, o validateSession já chama o signOut,
+            // que notifica o AppRouter para redirecionar.
+            // Apenas atualizamos o currentUser local se necessário
+            currentUser = await userRepository.getAuthenticatedUser();
+         }
+       });
     }
   } else {
     // Web: sqflite não é suportado; pular DB local
@@ -113,9 +119,10 @@ void main() async {
 
   // Instancia e carrega o UserStore
   UserStore userStore = UserStore(repository: userRepository);
-  // Já carregamos o usuário acima, então só precisamos configurar o estado
-  if (currentUser != null) {
-    userStore.state.value = [currentUser!];
+  
+  // Load user from database and validate token
+  if (!kIsWeb) {
+    await userStore.loadCurrentUser();
   }
 
   final bloodCenterStore = BloodCenterStore(repository: BloodRepository());
