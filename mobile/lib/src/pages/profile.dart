@@ -1,4 +1,4 @@
-import 'package:firebase_messaging/firebase_messaging.dart';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -54,10 +54,9 @@ class _ProfilePageState extends State<ProfilePage> {
     _initialUser = user; // <-- Salva o usuário no momento que a tela é carregada
     oldBloodTypeTopic =
         convertBloodType(user.bloodType!); // Salva o tópico antigo
-    if (!kIsWeb) {
-      subscribeToBloodTypeTopic(user.bloodType!);
-    }
+    
     nameController.text = user.name;
+
     bloodTypeController.text = user.bloodType!;
     dateInput.text = user.birthDate!;
     hasTattoo = user.hasTattoo;
@@ -112,23 +111,17 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  void subscribeToBloodTypeTopic(String bloodType) {
-    if (kIsWeb) return; // Topics não são suportados no Web
-    final topic = convertBloodType(bloodType);
-    if (topic.isNotEmpty) {
-      FirebaseMessaging.instance.subscribeToTopic(topic);
-    }
-  }
-
-  void unsubscribeFromBloodTypeTopic(String bloodType) {
-    if (kIsWeb) return; // Topics não são suportados no Web
-    final topic = convertBloodType(bloodType);
-    if (topic.isNotEmpty) {
-      FirebaseMessaging.instance.unsubscribeFromTopic(topic);
-    }
-  }
-
   String convertBloodType(String type) {
+    // Mantendo apenas para uso do oldBloodTypeTopic se necessário localmente, 
+    // mas idealmente poderia ser removido se não usado para mais nada.
+    // Como a variável 'oldBloodTypeTopic' é usada no initState, mantemos este método
+    // ou removemos a variável se ela não for mais útil.
+    // Pelo código, oldBloodTypeTopic parece não ser usado em outros lugares críticos além da inicialização
+    // que acabamos de limpar. Vamos checar se 'oldBloodTypeTopic' é usado.
+    // Olhando o código, 'oldBloodTypeTopic' é declarada mas não vejo uso no build ou onSave que exija isso
+    // além da lógica que removemos.
+    // Mas para garantir que não quebre a compilação caso algo dependa, vou manter o helper por enquanto
+    // ou melhor, vou checar se consigo remover tudo. 
     switch (type) {
       case 'A+':
         return 'positiveA';
@@ -328,6 +321,13 @@ class _ProfilePageState extends State<ProfilePage> {
                               2),
                       child: const Divider()),
                   TextButton.icon(
+                    style: TextButton.styleFrom(
+                      backgroundColor: Styles.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
                     onPressed: () async {
                       if (_profileFormKey.currentState!.validate()) {
                         _profileFormKey.currentState!.save();
@@ -358,12 +358,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               const SnackBar(
                                   content: Text('Nenhum dado alterado')));
                         } else {
-                          // Se mudou o tipo sanguíneo, desinscreve do antigo e inscreve no novo
-                          if (_initialUser.bloodType != newUser.bloodType) {
-                            unsubscribeFromBloodTypeTopic(
-                                _initialUser.bloodType!);
-                            subscribeToBloodTypeTopic(newUser.bloodType!);
-                          }
+                          // A atualização do tópico agora é feita dentro do UserStore.updateUser
                           await widget.userStore
                               .updateUser(newUser: newUser)
                               .whenComplete(
@@ -407,8 +402,12 @@ class _ProfilePageState extends State<ProfilePage> {
                         }
                       }
                     },
-                    style: ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all(Colors.red),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Styles.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                     icon: const Icon(LucideIcons.logOut),
                     label: const Text('Sair da conta'),

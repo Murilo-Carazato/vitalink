@@ -10,7 +10,11 @@ abstract class IBloodRepository {
       bool hasPagination,
       ValueNotifier<int> page,
       String search,
-      ValueNotifier<List<PageModel>> pages);
+      ValueNotifier<List<PageModel>> pages, {
+      double? latitude,
+      double? longitude,
+      double? radius,
+  });
 }
 
 class BloodRepository implements IBloodRepository {
@@ -19,11 +23,23 @@ class BloodRepository implements IBloodRepository {
       bool hasPagination,
       ValueNotifier<int> page,
       String search,
-      ValueNotifier<List<PageModel>> pages) async {
+      ValueNotifier<List<PageModel>> pages, {
+      double? latitude,
+      double? longitude,
+      double? radius,
+  }) async {
     try {
+      String queryParams = '/blood-center?has_pagination=$hasPagination&page=${page.value}&search=$search';
+      
+      if (latitude != null && longitude != null) {
+        queryParams += '&latitude=$latitude&longitude=$longitude';
+        if (radius != null) {
+          queryParams += '&radius=$radius';
+        }
+      }
+
       final response = await MyHttpClient.get(
-        url:
-            '/blood-center?has_pagination=$hasPagination&page=${page.value}&search=$search',
+        url: queryParams,
         headers: MyHttpClient.getHeaders(),
       );
       if (response.statusCode == 200) {

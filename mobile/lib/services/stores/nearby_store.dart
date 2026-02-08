@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:vitalink/services/models/blood_center_model.dart';
 import 'package:vitalink/services/models/nearby_model.dart';
+import 'package:vitalink/services/repositories/api/blood_center_repository.dart';
+import 'package:vitalink/services/models/page_model.dart';
 
 class NearbyStore with ChangeNotifier {
   ValueNotifier<List<NearbyModel>> state = ValueNotifier<List<NearbyModel>>([]);
@@ -13,7 +15,8 @@ class NearbyStore with ChangeNotifier {
   static const Duration _cacheDuration = Duration(minutes: 5);
 
   Future<void> syncNearbyBloodCenters({
-    required List<BloodCenterModel> bloodCentersFromApi,
+    // Parametro mantido para retrocompatibilidade, mas ignorado na nova lógica
+    List<BloodCenterModel>? bloodCentersFromApi, 
     bool forceRefresh = false,
   }) async {
     if (!forceRefresh &&
@@ -26,13 +29,47 @@ class NearbyStore with ChangeNotifier {
     isLoading.value = true;
     try {
       Position position = await determinePosition();
-      List<NearbyModel> nearby = await getNearbyBCs(position, bloodCentersFromApi);
-
       userPosition.value = position;
+
+      // Chama o repositório passando as coordenadas para buscar já filtrado do backend
+      // Usamos uma lista temporária de paginação que não será usada na UI do mapa
+      final pageNotifier = ValueNotifier<List<dynamic>>([]); // PageModel dinâmico ou ignore
+      
+      // Instancia o repositório diretamente (ideal seria injeção de dependência via construtor)
+      // Como não tenho acesso fácil ao container aqui, instanciei. 
+      // TODO: Injetar BloodRepository corretamente.
+      final repository = BloodRepository();
+      
+      final result = await repository.index(
+        false, // hasPagination = false para pegar a lista (o backend limita a 5 se tiver coords)
+        ValueNotifier(1), // page 1
+        '', // search empty
+        ValueNotifier([]), // pages ignore
+        latitude: position.latitude,
+        longitude: position.longitude,
+        radius: 500, // 500km radius (ou ajuste conforme regra de negócio)
+      );
+
+      // Converte BloodCenterModel -> NearbyModel
+      // O backend já retornou ordenado por distância.
+      // E esperamos que o backend tenha retornado o campo 'distance' no JSON, 
+      // mas o BloodCenterModel talvez não tenha esse campo mapeado.
+      // Se não tiver, calculamos a distância aqui apenas para preencher o model, 
+      // mas sem fazer a filtragem pesada.
+      
+      List<NearbyModel> nearby = [];
+      for (var bc in result) {
+         // Se o backend enviar 'distance', poderíamos usar.
+         // Por segurança, calculamos aqui rapidinho (são poucos itens agora, ~5).
+         double dist = calcDistance(position, bc);
+         nearby.add(NearbyModel(distance: dist, bloodCenter: bc));
+      }
+
       state.value = nearby;
       _lastFetchTime = DateTime.now();
     } on Exception catch (e) {
       erro.value = e.toString();
+      print('Erro ao buscar hemocentros próximos: $e');
     } finally {
       isLoading.value = false;
     }

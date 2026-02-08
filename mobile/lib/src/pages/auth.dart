@@ -433,10 +433,20 @@ class _AuthScreenState extends State<AuthScreen>
 
                         const SizedBox(height: 24),
 
-                        SignInButton(
-                          Buttons.google,
-                          text: 'Entrar com o Google',
-                          onPressed: _handleGoogleLogin,
+                        Consumer<AuthStore>(
+                          builder: (context, authStore, _) {
+                            return authStore.isLoading
+                                ? const Center(
+                                    child: CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(Styles.primary),
+                                    ),
+                                  )
+                                : SignInButton(
+                                    Buttons.google,
+                                    text: 'Entrar com o Google',
+                                    onPressed: _handleGoogleLogin,
+                                  );
+                          },
                         ),
 
                         const SizedBox(height: 32),

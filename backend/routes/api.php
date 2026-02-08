@@ -10,9 +10,40 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\DonationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Models\News;
+use App\Models\User;
 
 //php -S 0.0.0.0:8000 -t public
 // precisa disso pq o laravel+firebase cloud está bugado com o comando serve
+
+Route::post('/test-notification', function (Request $request) {
+    $bloodType = $request->input('blood_type', 'positiveA'); // Default to A+ topic
+    $title = $request->input('title', 'Teste de Notificação');
+    $content = $request->input('content', 'Isso é apenas um teste do sistema Vitalink.');
+    $type = $request->input('type', 'campaign'); // campaign or emergency
+
+    try {
+        $firebaseService = app(\App\Services\FirebaseService::class);
+        
+        // Persist to database so it appears in "News" tab
+        // Note: Typo 'campaing' is in the migration/database enum
+        $newsType = $type === 'campaign' ? 'campaing' : $type; 
+        
+        $news = News::create([
+            'title' => $title,
+            'content' => $content,
+            'image' => null, 
+            'type' => $newsType,
+            'blood_type' => $bloodType,
+            'user_id' => User::first()->id ?? 1, // Fallback to ID 1 or first user
+        ]);
+
+        $result = $firebaseService->sendNotification($title, $content, $bloodType, $type);
+        return response()->json(['success' => true, 'result' => $result, 'db_record' => $news]);
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+    }
+});
 
 Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return $request->user();

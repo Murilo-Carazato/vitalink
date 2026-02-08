@@ -1,4 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:vitalink/services/helpers/my_dates_formatter.dart';
@@ -113,8 +114,21 @@ class _NewsPageState extends State<NewsPage> {
           }
           final userBloodType = snapshot.data!['userBloodType'] ?? '';
           final allNews = snapshot.data!['news'] as List<NewsModel>;
-          final compatibleNews = allNews.where((news) => news.bloodType != null && news.bloodType!.isNotEmpty && isCompatible(userBloodType, news.bloodType!)).toList();
+          
+          print('NEWS PAGE DEBUG:');
+          print('User Blood Type: "$userBloodType"');
+          print('Total News Fetched: ${allNews.length}');
+          
+          final compatibleNews = allNews.where((news) {
+            final isComp = news.bloodType != null && news.bloodType!.isNotEmpty && isCompatible(userBloodType, news.bloodType!);
+            print('Checking News "${news.title}": BloodType="${news.bloodType}", IsCompatible=$isComp');
+            return isComp;
+          }).toList();
+          
           final generalNews = allNews.where((news) => news.bloodType == null || news.bloodType!.isEmpty).toList();
+
+          print('Compatible News Count: ${compatibleNews.length}');
+          print('General News Count: ${generalNews.length}');
 
           // Garante que as listas de controle tenham o tamanho correto
           if (isPanelOpenCompatible.length != compatibleNews.length) {
@@ -208,9 +222,9 @@ class _NewsPageState extends State<NewsPage> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       child: Text("Publicado em: ${MyDates(createdAt: newsList[i].createdAt!).formatDate}", style: textTheme.displaySmall),
                     ),
-                    Text(
+                    HtmlWidget(
                       newsList[i].content,
-                      style: textTheme.labelSmall,
+                      textStyle: textTheme.labelSmall,
                     ),
                     const SizedBox(height: 30)
                   ],

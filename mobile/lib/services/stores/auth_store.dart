@@ -203,21 +203,25 @@ class AuthStore with ChangeNotifier {
       // 2. Se o usuário existe, preserva os dados locais e apenas atualiza o token e o nome/email do servidor.
       final updatedUser = existingUser.copyWith(
         token: token,
-        name: userJson['name'] ?? existingUser.name, // Garante que o nome esteja sincronizado
-        email: userJson['email'] ?? existingUser.email, // Garante que o email esteja sincronizado
+        name: userJson['name'] ?? existingUser.name, 
+        email: userJson['email'] ?? existingUser.email, 
+        bloodType: userJson['blood_type'] ?? existingUser.bloodType,
+        birthDate: userJson['birth_date'] ?? existingUser.birthDate,
       );
       
-      print('Updating existing user with token');
+      print('AUTH STORE DEBUG: Backend Blood Type: "${userJson['blood_type']}"');
+      print('AUTH STORE DEBUG: Existing Local Blood Type: "${existingUser.bloodType}"');
+      print('Updating existing user with token and syncing data from backend');
       await _userRepo.updateUser(updatedUser);
     } else {
-      // 3. Se não existe, cria um novo usuário local com dados padrão
+      // 3. Se não existe, cria um novo usuário local com dados do servidor ou padrão
       final newUser = UserModel(
         id: serverId, // ID vem do servidor
         name: userJson['name'] ?? 'Anônimo',
         email: userJson['email'],
         token: token,
-        birthDate: '01/01/2000', // Padrão inicial
-        bloodType: 'A+', // Padrão inicial
+        birthDate: userJson['birth_date'] ?? '01/01/2000', 
+        bloodType: userJson['blood_type'] ?? 'A+', 
         viewedTutorial: true,
         hasTattoo: false,
         hasMicropigmentation: false,

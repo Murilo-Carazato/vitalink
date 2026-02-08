@@ -10,6 +10,7 @@ use App\Services\PaginateAndFilter;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class BloodCenterController extends Controller
 {
@@ -26,8 +27,37 @@ class BloodCenterController extends Controller
         // Cache key based on request parameters
         $cacheKey = 'blood_centers_' . md5($request->getQueryString() ?? '');
         
-        $result = Cache::remember($cacheKey, 3600, function () { // 1 hour cache
+        $result = Cache::remember($cacheKey, 3600, function () use ($request) { // 1 hour cache
             $query = PaginateAndFilter::applyFilters(BloodCenter::class, 'name');
+
+            if ($request->has(['latitude', 'longitude'])) {
+                $lat = $request->latitude;
+                $lon = $request->longitude;
+                $radius = $request->input('radius', 500); // Raio em KM, default bem alto para pegar tudo se não especificado, mas mobile filtra 20km normal
+
+                // Haversine Formula
+                $query->selectRaw("*, (
+                    6371 * acos(
+                        cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) +
+                        sin(radians(?)) * sin(radians(latitude))
+                    )
+                ) AS distance", [$lat, $lon, $lat]);
+
+                $query->having('distance', '<=', $radius);
+                $query->orderBy('distance', 'asc');
+                
+                // Se for busca geoespacial, geralmente queremos os top X, não paginação padrão
+                // Mas mantemos a lógica de paginação se o cliente pedir.
+                // O mobile pede `has_pagination=false` para o nearby normalmente se fosse pegar tudo,
+                // mas agora com otimização, podemos forçar limit 5 se for para nearby específico.
+                
+                // Observação: O mobile usa `getNearbyBCs` que pega top 5.
+                // Vamos dar limit 5 aqui se não tiver paginação explícita diferente.
+                 if ($request->input('has_pagination') !== 'true') {
+                     $query->limit(5);
+                 }
+            }
+
             return PaginateAndFilter::response($query);
         });
         

@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:vitalink/src/pages/schedule_donation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vitalink/services/helpers/launcher_helper.dart';
+import 'package:vitalink/styles.dart';
 
 
 class BloodCenterDetailsPage extends StatefulWidget {
@@ -88,7 +89,7 @@ class _BloodCenterDetailsPageState extends State<BloodCenterDetailsPage> {
                   },
                   label: const Text('Agendar Doação'),
                   icon: const Icon(LucideIcons.calendar),
-                  backgroundColor: Colors.red,
+                  backgroundColor: Styles.primary,
                 )
               : null,
         );

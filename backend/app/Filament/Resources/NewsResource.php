@@ -71,10 +71,21 @@ class NewsResource extends Resource
                         'emergency' => 'Emergência',
                     ]),
 
-                TextInput::make('blood_type')
+                Select::make('blood_type')
                     ->label('Tipo Sanguíneo')
-                    ->placeholder('Ex.: O-')
-                    ->maxLength(5),
+                    ->placeholder('Selecione para enviar para um grupo específico. Deixe vazio para todos.')
+                    ->options([
+                        'positiveA' => 'A+',
+                        'negativeA' => 'A-',
+                        'positiveB' => 'B+',
+                        'negativeB' => 'B-',
+                        'positiveAB' => 'AB+',
+                        'negativeAB' => 'AB-',
+                        'positiveO' => 'O+',
+                        'negativeO' => 'O-',
+                    ])
+                    ->searchable()
+                    ->nullable(),
 
                 Hidden::make('user_id')->default(fn() => auth()->id()),
             ]);

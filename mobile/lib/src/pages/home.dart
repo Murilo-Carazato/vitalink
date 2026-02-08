@@ -67,11 +67,9 @@ class _HomePageState extends State<HomePage> {
     }
 
     try {
-      // Carrega hemocentros e sincroniza com a localização
-      await widget.bloodCenterStore.index(false, '');
-      
+      // Carrega hemocentros próximos de forma otimizada
       if (mounted) {
-        await widget.nearbyStore.syncNearbyBloodCenters(bloodCentersFromApi: widget.bloodCenterStore.state.value);
+        await widget.nearbyStore.syncNearbyBloodCenters();
       }
     } catch (e) {
       // Log error internally if needed
@@ -302,15 +300,11 @@ class _HomePageState extends State<HomePage> {
     return RefreshIndicator.adaptive(
       onRefresh: () async {
         await Future.wait([
-          widget.bloodCenterStore.index(false, '', forceRefresh: true),
           widget.bloodCenterStore.fetchForDropdown(), // Ensure dropdown data is also refreshed if needed
         ]).then((_) {
-           if (widget.bloodCenterStore.state.value.isNotEmpty) {
              return widget.nearbyStore.syncNearbyBloodCenters(
-               bloodCentersFromApi: widget.bloodCenterStore.state.value, 
                forceRefresh: true
              );
-           }
         });
       },
       child: SingleChildScrollView(

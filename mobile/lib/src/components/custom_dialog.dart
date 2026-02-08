@@ -18,6 +18,7 @@ Future<bool?> showCustomDialog({
       final theme = Theme.of(context);
 
       return AlertDialog(
+        surfaceTintColor: Colors.transparent, // Remove purple tint
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.0),
         ),
@@ -43,6 +44,7 @@ Future<bool?> showCustomDialog({
               child: OutlinedButton(
                 onPressed: () => Navigator.of(context).pop(false),
                 style: OutlinedButton.styleFrom(
+                  foregroundColor: Styles.gray1, // Fix purple text
                   side: BorderSide(color: theme.brightness == Brightness.dark ? Styles.darkBorder : Styles.border),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
